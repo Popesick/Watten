@@ -17,6 +17,15 @@ export const SUIT_COLOR = {
   Eichel: '#8a5a2b', Laub: '#2f7d32', Herz: '#c62828', Schell: '#b8860b',
 };
 
+// Anzeige-Namen (Hausregel-Dialekt): intern bleibt 'Laub'/'Schell', angezeigt wird 'Gras'/'Schelln'.
+export const SUIT_DISPLAY = {
+  Eichel: 'Eichel', Laub: 'Gras', Herz: 'Herz', Schell: 'Schelln',
+};
+
+export function suitLabel(suit) {
+  return SUIT_DISPLAY[suit] || suit;
+}
+
 // Fixe Rangfolge der Farben als Tiebreak für "weitere Schläge" / gleichrangige Farbkarten.
 export const SUIT_PRIORITY = { Eichel: 3, Laub: 2, Herz: 1, Schell: 0 };
 
@@ -63,5 +72,6 @@ export function shuffle(deck) {
 }
 
 export function cardLabel(card) {
-  return `${RANK_LABEL[card.rank]} ${card.suit === 'Schell' && card.rank === 'Weli' ? '' : card.suit}`.trim();
+  if (isWeli(card)) return 'Weli';
+  return `${RANK_LABEL[card.rank]} ${suitLabel(card.suit)}`.trim();
 }

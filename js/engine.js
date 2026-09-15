@@ -10,10 +10,10 @@
 //   des Teams) stellvertretend für das ganze Team.
 // - "Es gehen die Vier" wird nur im klassischen 2-Team-Fall (2er/4er) angewendet.
 
-import { createDeck, shuffle } from './cards.js';
-import { legalPlays, trickWinner, cardsEqual, compareInTrick, cardStrength } from './rules.js';
+import { createDeck, shuffle, suitLabel, cardLabel } from './cards.js';
+import { legalPlays, trickWinner, cardsEqual, compareInTrick, cardStrength, haubeCard, describeWin } from './rules.js';
 import { VARIANTS, teamOfSeat } from './variants.js';
-import { SIGNALS, SIGNAL_TEXT } from './chat.js';
+import { SIGNALS, SIGNAL_TEXT, numberWord } from './chat.js';
 
 export class WattenGame {
   constructor({ playerCount, targetScore, seatTypes, ui }) {
@@ -132,7 +132,7 @@ export class WattenGame {
     const trumpSuit = await this.players[trumpSeat].chooseTrumpf(this.hands[trumpSeat], schlagRank);
     this.announcement = { trumpSuit, schlagRank };
     this.log(
-      `Sitz ${trumpSeat + 1} sagt Trumpf an: ${trumpSuit}, Schlag: ${schlagRank === 'Weli' ? 'Weli' : schlagRank}.`
+      `Sitz ${trumpSeat + 1} sagt Trumpf an: ${suitLabel(trumpSuit)}, Schlag: ${schlagRank === 'Weli' ? 'Weli' : schlagRank}.`
     );
     this.emit();
 
@@ -192,13 +192,13 @@ export class WattenGame {
       );
       if (action === 'pass') {
         this.roundValue = value;
-        this.log(`${this.variant.teamNames[proposer]} spielt ohne weitere Erhöhung um ${value} Punkte.`);
+        this.log(`${this.variant.teamNames[proposer]} fragt nicht weiter, es bleibt bei ${value} Punkten.`);
         this.emit();
         return { fold: false, activeTeams };
       }
 
       const newValue = value + 1;
-      this.log(`${this.variant.teamNames[proposer]} erhöht auf ${newValue} Punkte.`);
+      this.log(`${this.variant.teamNames[proposer]}: "${numberWord(newValue)}!" – Geht ihr?`);
       this.emit();
 
       const responderTeams = activeTeams.filter((t) => t !== proposer);
@@ -208,9 +208,9 @@ export class WattenGame {
         const decision = await this.players[captain].decideHoldOrFold(this.hands[captain], this.announcement, newValue);
         if (decision === 'hold') {
           holds.push(t);
-          this.log(`${this.variant.teamNames[t]} hält.`);
+          this.log(`${this.variant.teamNames[t]}: "Nein, wir gehen nicht!" (weiter auf ${newValue})`);
         } else {
-          this.log(`${this.variant.teamNames[t]} geht.`);
+          this.log(`${this.variant.teamNames[t]}: "Ja, wir gehen." – ${this.variant.teamNames[proposer]} erhält ${value} Punkte.`);
         }
       }
       this.emit();
@@ -258,12 +258,15 @@ export class WattenGame {
     let leaderSeat = activeSeats.includes(schlagSeat)
       ? schlagSeat
       : this.rotateFrom(activeSeats, schlagSeat)[0];
+    let trickNumber = 0;
 
     while (Math.max(...this.stitches) < 3) {
+      trickNumber++;
       const order = this.rotateFrom(activeSeats, leaderSeat);
       const trickPlays = [];
       let ledCard = null;
-      this.currentTrick = { ledCard: null, plays: [] };
+      let trumpfOderKritisch = false;
+      this.currentTrick = { ledCard: null, plays: [], trumpfOderKritisch: false };
       const signaledTeams = new Set();
       const pendingSignals = {}; // teamIdx -> { fromSeat, toSeat, signal }
       this.emit();
@@ -318,10 +321,11 @@ export class WattenGame {
           partnerSeats,
           partnerIsWinning,
           receivedSignal,
+          trumpfOderKritisch,
         };
 
         let card = await this.players[seat].choosePlay(context);
-        const legal = legalPlays(hand, ledCard, this.announcement);
+        const legal = legalPlays(hand, ledCard, this.announcement, { trumpfOderKritisch });
         if (!card || !legal.some((c) => cardsEqual(c, card))) {
           card = legal[0]; // Absicherung gegen ungültige/leere Antworten
         }
@@ -346,19 +350,38 @@ export class WattenGame {
           this.log(`Sitz ${seat + 1}: "${response}"`);
         }
 
+        const wasLeader = !ledCard;
         trickPlays.push({ seat, card });
         if (!ledCard) ledCard = card;
-        this.currentTrick = { ledCard, plays: trickPlays.slice() };
-        this.log(`Sitz ${seat + 1} spielt ${card.rank === 'Weli' ? 'Weli' : `${card.rank} ${card.suit}`}.`);
+
+        // Eröffnet der Schlagansager den allerersten Stich der Runde mit der
+        // Haube, gilt ab jetzt "Trumpf oder Kritisch" für alle Folgenden.
+        if (wasLeader && trickNumber === 1 && seat === schlagSeat) {
+          const haube = haubeCard(this.announcement);
+          if (haube && cardsEqual(card, haube)) {
+            trumpfOderKritisch = true;
+            this.log(`Sitz ${seat + 1} eröffnet mit der Haube – Trumpf oder Kritisch!`);
+          }
+        }
+
+        this.currentTrick = { ledCard, plays: trickPlays.slice(), trumpfOderKritisch };
+        this.log(`Sitz ${seat + 1} spielt ${cardLabel(card)}.`);
         this.emit();
       }
 
       const winnerSeat = trickWinner(trickPlays, this.announcement);
       const winnerTeam = teamOfSeat(this.variant, winnerSeat);
+      const winningCard = trickPlays.find((p) => p.seat === winnerSeat).card;
+      const reasonText = describeWin(winningCard, this.announcement);
       this.stitches[winnerTeam]++;
-      this.log(`Stich geht an Sitz ${winnerSeat + 1} (${this.variant.teamNames[winnerTeam]}). Stand: ${this.stitches.join(':')}`);
-      leaderSeat = winnerSeat;
+      this.log(`Stich geht an Sitz ${winnerSeat + 1} (${this.variant.teamNames[winnerTeam]}), ${reasonText}. Stand: ${this.stitches.join(':')}`);
       this.emit();
+
+      if (this.seatTypes.includes('human') && typeof this.ui.confirmTrick === 'function') {
+        await this.ui.confirmTrick({ winnerSeat, winnerTeam, reasonText, stitches: this.stitches.slice() });
+      }
+
+      leaderSeat = winnerSeat;
     }
 
     const roundWinnerTeam = this.stitches.findIndex((s) => s >= 3);

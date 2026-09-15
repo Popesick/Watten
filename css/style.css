@@ -197,6 +197,9 @@ h1, h2, h3 { margin: 0 0 8px; }
 .signal-panel { border-color: #6fa8dc; }
 .signal-panel .prompt { color: #cfe6ff; }
 
+.confirm-panel { border-color: #8bc34a; }
+.confirm-panel .prompt { color: #e2f5cc; font-weight: 600; }
+
 .card {
   width: 56px;
   height: 84px;

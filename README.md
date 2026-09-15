@@ -23,18 +23,35 @@ KI-Logik deutlich einfacher (kein Bluffen/Signalisieren nötig) und ist eine
 gute Einsteiger-Variante. Blindwatten (verdeckte Ansage) kann später als
 Erweiterung ergänzt werden.
 
-Umgesetzte Grundregeln:
-- 33 Karten (4 Farben × 7–Ass + Weli), Rangordnung Guete → Rechte → weitere
-  Schläge → Trumpf → Farbkarten, inkl. Sonderfall "Ass als Schlag" und
-  "Weli als Schlag".
-- Farbzwang auf die angespielte physische Farbe (Trumpf muss zugegeben
-  werden, wenn vorhanden).
-- Bieten (Erhöhen/Halten/Gehen) in Ein-Punkt-Schritten.
+Umgesetzte Grundregeln (Hausregel-Variante):
+- 33 Karten (4 Farben × 7–Ass + Weli). Farbnamen wie am Tisch gebräuchlich:
+  Eichel, **Gras** (intern "Laub"), Herz, **Schelln** (intern "Schell").
+- Rangordnung: Weli-als-Schlag (Sonderfall) → **Kritisch** → Guete →
+  **Haube** → weitere Schläge → Trumpf → Farbkarten.
+  - Die **Haube** ist die Trumpf-Karte im Rang des angesagten Schlags
+    (anderswo auch "Rechte" genannt).
+  - **Kritische Karten** sind fix und immer stark, unabhängig von Trumpf/
+    Schlag: Eichel 7 < Schelln 7 < Herz König.
+- **Kein genereller Farbzwang** – man darf grundsätzlich jede Karte spielen.
+  Einzige Ausnahme: **"Trumpf oder Kritisch"** – eröffnet der Schlagansager
+  den allerersten Stich der Runde mit der Haube, müssen ab da alle in diesem
+  Stich Trumpf zugeben oder mit einem Kritischen stechen.
+- Ein Stich, der rein durch höheren Rang innerhalb einer normalen (nicht
+  Trumpf-)Farbe gewonnen wird, heißt **"Dant"**.
+- Bieten heißt **"Geht ihr?"**: die Gegenseite kann statt zu passen laut
+  ansagen ("Drei!", "Vier!", …), was den Einsatz automatisch erhöht; die
+  Antwort ist "Nein, wir gehen nicht!" (hält, Einsatz steigt) oder "Ja, wir
+  gehen." (Runde vorbei, aktueller Einsatz geht an den Frager). Das kann sich
+  beliebig hochschaukeln, bis eine Seite nicht mehr fragt.
 - "Es gehen die Vier" (gestrichen-Regel) im klassischen 2-Team-Fall (2er/4er).
 - Rundenwertung (3 Stiche gewinnen die Runde) und Spielwertung bis zur
   Zielpunktzahl (11/15/18).
 - Varianten für 2, 3 und 4 Spieler (Kartenzahl, Teams) gemäß
-  watten-suedtirol.com.
+  watten-suedtirol.com, angepasst um obige Hausregeln.
+- Nach jedem Stich pausiert das Spiel (sofern ein Mensch mitspielt) mit
+  Begründung ("Sitz X sticht mit Trumpf/Schlag/Kritisch/Dant/…") und
+  wartet auf Bestätigung ("Weiter"), damit man auch die KI-Karten in Ruhe
+  sieht.
 
 ## Bewusste Vereinfachungen (Stand: erste Version)
 
@@ -80,7 +97,8 @@ etwas zurufen (KI entscheidet heuristisch, ob und was sie sagt).
 ## Architektur
 
 - `js/cards.js` – Kartendeck, Symbole, Grundtypen.
-- `js/rules.js` – Rangordnung, Kartenvergleich, Farbzwang, Stichauswertung.
+- `js/rules.js` – Rangordnung (inkl. Kritisch/Haube), Kartenvergleich,
+  Legalität ("Trumpf oder Kritisch"), Stichauswertung samt Begründung.
 - `js/variants.js` – Konfiguration je Spieleranzahl (2/3/4).
 - `js/chat.js` – Floskeln für die Partner-Kommunikation.
 - `js/ai.js` – Heuristische KI (Ansage, Bieten, Kartenspiel, Kommunikation).

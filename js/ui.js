@@ -1,9 +1,9 @@
 // Rendert den Spieltisch und löst menschliche Eingaben als Promises auf.
 // Die Engine ruft diese Methoden auf, ohne zu wissen, dass ein Mensch dahintersteckt.
 
-import { SUIT_SYMBOL, SUIT_COLOR, RANKS, RANK_LABEL, cardId } from './cards.js';
+import { SUIT_SYMBOL, SUIT_COLOR, RANKS, RANK_LABEL, cardId, suitLabel } from './cards.js';
 import { legalPlays } from './rules.js';
-import { SIGNALS, SIGNAL_TEXT } from './chat.js';
+import { SIGNALS, SIGNAL_TEXT, numberWord } from './chat.js';
 
 export class Ui {
   constructor(container, { characters = {} } = {}) {
@@ -11,6 +11,7 @@ export class Ui {
     this.state = null;
     this.pending = null;
     this.pendingSignal = null;
+    this.pendingConfirm = null;
     this.characters = characters; // seat -> { name, img }
     this.game = null; // wird von main.js gesetzt, für askPartner()
   }
@@ -73,6 +74,14 @@ export class Ui {
     });
   }
 
+  /** Pausiert nach jedem Stich, bis ein Mensch die Begründung bestätigt hat. */
+  confirmTrick(info) {
+    return new Promise((resolve) => {
+      this.pendingConfirm = { info, resolve };
+      this.render();
+    });
+  }
+
   resolvePending(value) {
     if (!this.pending) return;
     const { resolve } = this.pending;
@@ -85,6 +94,13 @@ export class Ui {
     const { resolve } = this.pendingSignal;
     this.pendingSignal = null;
     resolve(value);
+  }
+
+  resolveConfirm() {
+    if (!this.pendingConfirm) return;
+    const { resolve } = this.pendingConfirm;
+    this.pendingConfirm = null;
+    resolve();
   }
 
   cardHtml(card, { faceUp = true, clickable = false, disabled = false } = {}) {
@@ -118,7 +134,7 @@ export class Ui {
       </div>`;
 
     const announcementBanner = s.announcement
-      ? `<div class="announcement-banner">Trumpf: <b>${s.announcement.trumpSuit}</b> ${SUIT_SYMBOL[s.announcement.trumpSuit]} &nbsp;|&nbsp; Schlag: <b>${s.announcement.schlagRank === 'Weli' ? 'Weli' : RANK_LABEL[s.announcement.schlagRank]}</b></div>`
+      ? `<div class="announcement-banner">Trumpf: <b>${suitLabel(s.announcement.trumpSuit)}</b> ${SUIT_SYMBOL[s.announcement.trumpSuit]} &nbsp;|&nbsp; Schlag: <b>${s.announcement.schlagRank === 'Weli' ? 'Weli' : RANK_LABEL[s.announcement.schlagRank]}</b>${s.currentTrick.trumpfOderKritisch ? ' &nbsp;|&nbsp; <span style="color:#ffb347">Trumpf oder Kritisch!</span>' : ''}</div>`
       : `<div class="announcement-banner">Ansage läuft…</div>`;
 
     const seatsHtml = s.seatTypes
@@ -133,6 +149,7 @@ export class Ui {
 
     const actionPanel = this.renderActionPanel();
     const signalPanel = this.renderSignalPanel();
+    const confirmPanel = this.renderConfirmPanel();
 
     const logHtml = s.messages
       .slice(-40)
@@ -145,6 +162,7 @@ export class Ui {
         ${announcementBanner}
         ${actionPanel}
         ${signalPanel}
+        ${confirmPanel}
         <div class="trick-area">${trickHtml}</div>
         <div class="seats-grid">${seatsHtml}</div>
         <div class="log-panel" id="log-panel">${logHtml}</div>
@@ -170,7 +188,9 @@ export class Ui {
     let handHtml;
     if (type === 'human') {
       const isCardPlayTurn = this.pending && this.pending.type === 'cardPlay' && this.pending.seat === seat;
-      const legal = isCardPlayTurn ? legalPlays(hand, s.currentTrick.ledCard, s.announcement) : [];
+      const legal = isCardPlayTurn
+        ? legalPlays(hand, s.currentTrick.ledCard, s.announcement, { trumpfOderKritisch: s.currentTrick.trumpfOderKritisch })
+        : [];
       handHtml = hand
         .map((c) => {
           const isLegal = legal.some((lc) => cardId(lc) === cardId(c));
@@ -208,22 +228,22 @@ export class Ui {
     }
     if (p.type === 'trumpf') {
       const buttons = Object.keys(SUIT_SYMBOL)
-        .map((suit) => `<button class="action-btn" data-trumpf="${suit}">${suit} ${SUIT_SYMBOL[suit]}</button>`)
+        .map((suit) => `<button class="action-btn" data-trumpf="${suit}">${suitLabel(suit)} ${SUIT_SYMBOL[suit]}</button>`)
         .join('');
       return `<div class="action-panel"><div class="prompt">Sitz ${p.seat + 1}: Trumpf ansagen (Schlag ist ${p.schlagRank === 'Weli' ? 'Weli' : RANK_LABEL[p.schlagRank]})</div><div class="action-buttons">${buttons}</div></div>`;
     }
     if (p.type === 'raiseOrPass') {
-      return `<div class="action-panel"><div class="prompt">Sitz ${p.seat + 1}: Bieten (aktuell ${p.currentValue} Punkte)</div>
+      return `<div class="action-panel"><div class="prompt">Sitz ${p.seat + 1}: Willst du fragen "Geht ihr?" (aktuell ${p.currentValue} Punkte)</div>
         <div class="action-buttons">
-          <button class="action-btn" data-bid="raise">Erhöhen auf ${p.currentValue + 1}</button>
-          <button class="action-btn" data-bid="pass">Passen (bei ${p.currentValue} bleiben)</button>
+          <button class="action-btn" data-bid="raise">Ja – "${numberWord(p.currentValue + 1)}!"</button>
+          <button class="action-btn" data-bid="pass">Nein, bei ${p.currentValue} Punkten spielen</button>
         </div></div>`;
     }
     if (p.type === 'holdOrFold') {
-      return `<div class="action-panel"><div class="prompt">Sitz ${p.seat + 1}: Gegner erhöht auf ${p.newValue} Punkte</div>
+      return `<div class="action-panel"><div class="prompt">Sitz ${p.seat + 1}: Geht ihr? (Gegner sagt "${numberWord(p.newValue)}!")</div>
         <div class="action-buttons">
-          <button class="action-btn" data-bid="hold">Halten (auf ${p.newValue})</button>
-          <button class="action-btn danger" data-bid="fold">Gehen</button>
+          <button class="action-btn" data-bid="hold">Nein, wir gehen nicht! (weiter auf ${p.newValue})</button>
+          <button class="action-btn danger" data-bid="fold">Ja, wir gehen.</button>
         </div></div>`;
     }
     if (p.type === 'holdOrFoldForced') {
@@ -248,6 +268,17 @@ export class Ui {
         <button class="action-btn" data-signal="${SIGNALS.MACH_DU}">🗣️ Ich kann nicht, mach du den Stich!</button>
         <button class="action-btn" data-signal="${SIGNALS.LASS_IHN}">🗣️ Lass ihn, das ist meiner!</button>
         <button class="action-btn" data-signal="NONE">… (nichts sagen)</button>
+      </div>
+    </div>`;
+  }
+
+  renderConfirmPanel() {
+    const p = this.pendingConfirm;
+    if (!p) return '';
+    return `<div class="action-panel confirm-panel">
+      <div class="prompt">Sitz ${p.info.winnerSeat + 1} sticht ${p.info.reasonText}. Stand: ${p.info.stitches.join(':')}</div>
+      <div class="action-buttons">
+        <button class="action-btn" data-confirm="1">Weiter</button>
       </div>
     </div>`;
   }
@@ -280,6 +311,9 @@ export class Ui {
         const v = btn.dataset.signal;
         this.resolveSignal(v === 'NONE' ? null : v);
       });
+    });
+    this.container.querySelectorAll('[data-confirm]').forEach((btn) => {
+      btn.addEventListener('click', () => this.resolveConfirm());
     });
     this.container.querySelectorAll('[data-ask-partner]').forEach((btn) => {
       btn.addEventListener('click', () => {

@@ -8,7 +8,7 @@ import { SIGNALS } from './chat.js';
 function cardWeight(card, announcement) {
   const s = cardStrength(card, announcement);
   // Grobe, monoton steigende Gewichtung je Kategorie, für Handstärke-Schätzung.
-  const catBase = { 1: 0, 2: 8, 3: 16, 4: 20, 5: 22, 6: 24 }[s.cat] || 0;
+  const catBase = { 1: 0, 2: 8, 3: 16, 4: 20, 5: 22, 6: 23, 7: 24 }[s.cat] || 0;
   return catBase + Math.max(0, s.val);
 }
 
@@ -81,8 +81,8 @@ export function decideHoldForcedFour(hand, announcement) {
  *   isDecisiveTrick: bool, mySeat, partnerSeat, partnerIsWinning }
  */
 export function choosePlay(context) {
-  const { hand, ledCard, trickPlays, announcement, isDecisiveTrick, partnerIsWinning } = context;
-  const legal = legalPlays(hand, ledCard, announcement);
+  const { hand, ledCard, trickPlays, announcement, isDecisiveTrick, partnerIsWinning, trumpfOderKritisch } = context;
+  const legal = legalPlays(hand, ledCard, announcement, { trumpfOderKritisch });
   const sorted = sortByStrength(legal, announcement); // schwächste zuerst
 
   if (!ledCard) {
