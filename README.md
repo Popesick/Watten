@@ -102,6 +102,11 @@ höchstens einmal pro Team und Stich.
   bei der Trumpfansage, auf den Karten und im Trumpf-Banner.
 - Ein ausgespielter Kritischer (Soache/Welln/Maxe) bekommt im laufenden
   Stich einen roten Rahmen, damit er sofort auffällt.
+- Hat der eigene Partner im laufenden Stich gerade die höchste Karte, wird
+  seine Karte blau umrandet (🤝) und die Kartenwahl-Aufforderung zeigt
+  zusätzlich "Der Stich gehört gerade euch!" - eine Hilfe, damit man nicht
+  unnötig einen Trumpf reinwirft, obwohl der Stich schon sicher ist (kann
+  sich natürlich noch ändern, solange der Stich läuft).
 
 ## Sound & Musik
 
@@ -125,9 +130,10 @@ gleichrangige Farben in fester Reihenfolge. Einzelne Karten lassen sich
 per Drag & Drop frei umsortieren; das bleibt für den Rest der Runde
 erhalten (nur gespielte Karten fallen raus), bis das nächste Blatt kommt.
 
-Wenn man selbst am Zug ist und der eigene Partner in diesem Stich schon
-gespielt hat, wird das direkt in der Aufforderung angezeigt ("Sitz 1: wähle
-eine Karte. Dein Mitspieler hat schon den Stich gemacht!").
+Wenn man selbst am Zug ist und der eigene Partner im laufenden Stich gerade
+die höchste Karte hat, wird das direkt in der Aufforderung angezeigt ("Sitz
+1: wähle eine Karte. Der Stich gehört gerade euch!") und die Karte des
+Partners im Stich blau markiert - siehe Grafik-Abschnitt oben.
 
 ## Bewusste Vereinfachungen (Stand: aktuelle Version)
 

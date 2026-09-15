@@ -199,9 +199,15 @@ export class Ui {
       .map((type, seat) => this.renderSeat(seat, type, s))
       .join('');
 
+    const pendingCardPlay = this.pending && this.pending.type === 'cardPlay' ? this.pending : null;
+    const partnerSeatsInView = pendingCardPlay ? pendingCardPlay.context.partnerSeats || [] : [];
+
     const trickHtml = s.currentTrick.plays.length
       ? s.currentTrick.plays
-          .map((p) => `<div class="trick-card-wrap"><div class="who">Sitz ${p.seat + 1}</div>${this.cardHtml(p.card, { highlightKritisch: true })}</div>`)
+          .map((p) => {
+            const isPartner = partnerSeatsInView.includes(p.seat);
+            return `<div class="trick-card-wrap${isPartner ? ' partner-card' : ''}"><div class="who">Sitz ${p.seat + 1}${isPartner ? ' 🤝' : ''}</div>${this.cardHtml(p.card, { highlightKritisch: true })}</div>`;
+          })
           .join('')
       : `<div style="color:var(--muted)">Noch keine Karte gespielt</div>`;
 
@@ -343,8 +349,8 @@ export class Ui {
       const infoLine = ctx.receivedAnswer
         ? `<div class="prompt" style="margin-top:6px">Partner: "${ASK_TEXT[ctx.receivedAnswer]}"</div>`
         : '';
-      const partnerNote = ctx.partnerAlreadyPlayed
-        ? ' Dein Mitspieler hat in diesem Stich schon gespielt.'
+      const partnerNote = ctx.partnerIsWinning
+        ? ' Der Stich gehört gerade euch!'
         : '';
       return `<div class="action-panel"><div class="prompt">Sitz ${p.seat + 1}: wähle eine Karte.${partnerNote}</div>${infoLine}${
         metaButtons.length ? `<div class="action-buttons">${metaButtons.join('')}</div>` : ''
