@@ -84,18 +84,47 @@ höchstens einmal pro Team und Stich.
 
 ## Grafik
 
-- Hintergrund (urige bayerische Wirtshausstube) und sieben KI-Charaktere
+- Hintergrund (urige bayerische Wirtshausstube) und sieben Charaktere
   (Loisl, Schorsch, Sepp, Hanse, Lenerl, Brigitte, Monika) wurden mit
   ChatGPT (Bildgenerierung, transparenter Hintergrund für die Charaktere)
   erstellt und liegen unter `assets/img/`.
-- Die KI-Sitzplätze bekommen bei jedem Spielstart zufällig verschiedene
-  Charaktere zugewiesen (`CHARACTERS` in `js/main.js`).
-- Die Kartenrückseiten werden per CSS über der Charaktergrafik positioniert
-  (kein pixelgenaues "in die Hand legen", aber optisch stimmig).
+- Im Startmenü kann jedem Sitzplatz (Mensch wie KI) explizit einer der
+  sieben Charaktere als Avatar zugewiesen werden, oder "🎲 Zufällig"
+  bleiben; unbesetzte Sitze werden beim Spielstart aus den noch nicht
+  gewählten Charakteren zufällig aufgefüllt.
+- Die Kartenrückseiten (KI) bzw. die eigenen Karten (Mensch) werden per CSS
+  über der Charaktergrafik positioniert (kein pixelgenaues "in die Hand
+  legen", aber optisch stimmig).
 - Team-Zugehörigkeit ist über einen farbigen Punkt bei Sitzname und
   Punktestand erkennbar (Team A/B/C je eigene Farbe).
 - Farben sind eingefärbt (Herz rot, Eichel braun, Gras grün, Schelln gold) -
   bei der Trumpfansage, auf den Karten und im Trumpf-Banner.
+
+## Sound & Musik
+
+- Vier Musikstücke (`assets/audio/music-*.mp3`) laufen als Playlist
+  nacheinander in Dauerschleife. Lautstärke und An/Aus sind im Startmenü
+  einstellbar (Standard: an, 30 % Lautstärke) und werden im Browser
+  gespeichert; ein 🔊/🔇-Button oben rechts im Spiel schaltet jederzeit um.
+  Musik startet beim Klick auf "Spiel starten" (Browser verlangen eine
+  Nutzer-Interaktion, bevor Audio automatisch abgespielt werden darf).
+- Karten werden zu Beginn jeder Runde animiert ausgeteilt: kurze
+  Misch-Pause (3 Sekunden, aktuell ohne eigenen Mischsound - dafür wurde
+  keine Datei mitgeliefert), danach fliegt jede Karte einzeln mit einem
+  Deal-Sound (`assets/audio/sfx-deal-card.mp3`) ins Bild.
+
+## Eigene Hand: Sortierung & Umsortieren
+
+Die eigene Hand wird automatisch absteigend nach Stärke sortiert - sobald
+Trumpf/Schlag bekannt sind nach Maxe/Welln/Soache (Kritische) → Guete →
+Haube → weitere Schläge → Trumpf → Farbkarten, jeweils Sau bis Sieben,
+gleichrangige Farben in fester Reihenfolge. Einzelne Karten lassen sich
+per Drag & Drop frei umsortieren; das bleibt für den Rest der Runde
+erhalten (nur gespielte Karten fallen raus), bis das nächste Blatt kommt.
+
+Wenn man selbst am Zug ist und der eigene Partner in diesem Stich schon
+gespielt hat, wird das direkt in der Aufforderung angezeigt ("Sitz 1: wähle
+eine Karte. Dein Mitspieler hat schon den Stich gemacht!").
 
 ## Bewusste Vereinfachungen (Stand: aktuelle Version)
 
@@ -119,15 +148,18 @@ höchstens einmal pro Team und Stich.
 - `js/ai.js` – Heuristische KI (Ansage, "Gehn?", Kartenspiel, Partnerfrage).
 - `js/players.js` – Einheitliches Player-Interface (`HumanController`,
   `AIController`) – die Engine unterscheidet nicht, wer entscheidet.
-- `js/engine.js` – Spielablauf: Austeilen, Ansage, Stiche, "Gehn?"-
-  Verhandlung, Wertung.
-- `js/ui.js` / `js/main.js` – Rendering, Charakter-Zuordnung, Einstiegspunkt.
+- `js/engine.js` – Spielablauf: animiertes Austeilen, Ansage, Stiche,
+  "Gehn?"-Verhandlung, Wertung.
+- `js/audio.js` – Musik-Playlist und Soundeffekte (`AudioManager`).
+- `js/ui.js` / `js/main.js` – Rendering, Avatar-/Musikauswahl, Hand-
+  Sortierung/Drag&Drop, Einstiegspunkt.
 - `assets/img/` – Hintergrund- und Charaktergrafiken.
+- `assets/audio/` – Musikstücke und Soundeffekte.
 
 ## Mögliche nächste Schritte
 
-- Sprachausgabe/Soundeffekte/Musik (als Nächstes geplant).
+- Eigener Mischsound (aktuell nur stille 3-Sekunden-Pause beim Mischen).
+- Sprachausgabe.
 - Blindwatten-Modus (verdeckte Ansage).
 - Bessere KI (Simulation/Determinisierung statt reiner Heuristik).
 - Schlagtausch, Schöner, "nichts ansagen".
-- Eigene Sitzplatz-/Partnerauswahl statt fixer Zuordnung nach Reihenfolge.

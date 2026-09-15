@@ -78,12 +78,38 @@ h1, h2, h3 { margin: 0 0 8px; }
 }
 .seat-row {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: 8px;
   background: rgba(255,255,255,0.05);
   padding: 8px 12px;
   border-radius: 8px;
 }
+.seat-row-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.avatar-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.avatar-thumb {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.25);
+  background-color: rgba(0,0,0,0.3);
+  background-size: cover;
+  background-position: top center;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+}
+.avatar-thumb:hover { border-color: var(--gold); }
+.avatar-thumb.active { border-color: var(--gold); box-shadow: 0 0 6px var(--gold); }
+.avatar-thumb.avatar-random { display: flex; align-items: center; justify-content: center; font-size: 1rem; background-color: rgba(255,255,255,0.08); }
+
+.music-row { align-items: center; }
+.music-row input[type="range"] { width: 140px; accent-color: var(--gold); }
+.music-row span { font-size: 0.85rem; color: var(--muted); min-width: 36px; }
 
 .start-btn {
   width: 100%;
@@ -122,6 +148,18 @@ h1, h2, h3 { margin: 0 0 8px; }
 }
 .score-item { font-size: 1.05rem; }
 .score-item b { color: var(--gold); }
+
+.music-toggle-btn {
+  margin-left: auto;
+  border: 1px solid var(--gold);
+  background: rgba(0,0,0,0.3);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 4px 10px;
+  cursor: pointer;
+  font-size: 1rem;
+}
+.music-toggle-btn:hover { background: rgba(212,175,55,0.2); }
 
 .announcement-banner {
   background: var(--panel);
@@ -215,6 +253,8 @@ h1, h2, h3 { margin: 0 0 8px; }
 .card .suit-symbol { font-size: 1.4rem; }
 .card.clickable { cursor: pointer; }
 .card.clickable:hover { transform: translateY(-6px); transition: transform 0.1s; }
+.card[draggable="true"] { cursor: grab; }
+.card[draggable="true"]:active { cursor: grabbing; }
 .card.disabled { opacity: 0.45; cursor: not-allowed; }
 .card.back {
   background: repeating-linear-gradient(45deg, #7a1f1f, #7a1f1f 6px, #5a1414 6px, #5a1414 12px);

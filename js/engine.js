@@ -90,13 +90,36 @@ export class WattenGame {
     this.emit();
   }
 
-  deal() {
+  sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Mischt und teilt aus. Wenn die UI Sound-Hooks anbietet (onShuffle/
+   * onCardDealt), läuft das animiert ab: kurze Misch-Pause, dann werden die
+   * Karten einzeln der Reihe nach ausgeteilt statt alle auf einmal.
+   */
+  async deal() {
     const deck = shuffle(createDeck());
     const hands = Array.from({ length: this.n }, () => []);
+
+    if (typeof this.ui.onShuffle === 'function') {
+      this.ui.onShuffle();
+      await this.sleep(3000);
+    }
+
     let idx = 0;
-    for (let s = 0; s < this.n; s++) {
-      hands[s] = deck.slice(idx, idx + this.variant.cardsPerHand);
-      idx += this.variant.cardsPerHand;
+    for (let round = 0; round < this.variant.cardsPerHand; round++) {
+      for (let s = 0; s < this.n; s++) {
+        hands[s].push(deck[idx]);
+        idx++;
+        this.hands = hands.map((h) => h.slice());
+        this.emit();
+        if (typeof this.ui.onCardDealt === 'function') {
+          this.ui.onCardDealt();
+          await this.sleep(140);
+        }
+      }
     }
     this.hands = hands;
   }
@@ -116,12 +139,14 @@ export class WattenGame {
   async playRound() {
     this.roundNumber++;
     this.phase = 'dealing';
-    this.deal();
     this.announcement = null;
     this.currentTrick = { ledCard: null, plays: [] };
     this.stitches = this.variant.teams.map(() => 0);
     this.roundValue = 2;
+    this.hands = Array.from({ length: this.n }, () => []);
     this.emit();
+
+    await this.deal();
 
     for (let seat = 0; seat < this.n; seat++) {
       if (hasMaschin(this.hands[seat])) {
@@ -292,6 +317,7 @@ export class WattenGame {
           mySeat: seat,
           partnerSeats,
           partnerIsWinning,
+          partnerAlreadyPlayed,
           trumpfOderKritisch,
           gehnAvailable: !this.gehnUsedThisRound,
           canAsk: hasPartner && !partnerAlreadyPlayed && ledCard !== null && !askedThisTrick.has(teamOfCurrent),
