@@ -147,8 +147,9 @@ h1, h2, h3 { margin: 0 0 8px; }
   position: relative;
 }
 .seat-box.turn { border-color: var(--gold); box-shadow: 0 0 12px var(--gold); }
-.seat-title { font-weight: 700; margin-bottom: 6px; display: flex; justify-content: space-between; position: relative; z-index: 2; }
+.seat-title { font-weight: 700; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 2; }
 .seat-title .badge { font-size: 0.75rem; padding: 2px 8px; border-radius: 10px; background: rgba(255,255,255,0.15); }
+.team-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: middle; box-shadow: 0 0 4px rgba(0,0,0,0.6); }
 
 .seat-box.has-portrait {
   min-height: 210px;
@@ -181,24 +182,17 @@ h1, h2, h3 { margin: 0 0 8px; }
   min-height: 90px;
 }
 
-.ask-partner-btn {
-  align-self: center;
-  margin-top: 6px;
-  padding: 4px 10px;
-  border-radius: 8px;
-  border: 1px solid var(--gold);
-  background: rgba(0,0,0,0.4);
-  color: var(--text);
-  font-size: 0.75rem;
-  cursor: pointer;
-}
-.ask-partner-btn:hover { background: rgba(212,175,55,0.25); }
+.gehn-panel { border-color: #e07a5f; }
+.gehn-panel .prompt { color: #ffd9cc; }
 
-.signal-panel { border-color: #6fa8dc; }
-.signal-panel .prompt { color: #cfe6ff; }
+.ask-panel { border-color: #6fa8dc; }
+.ask-panel .prompt { color: #cfe6ff; }
 
 .confirm-panel { border-color: #8bc34a; }
 .confirm-panel .prompt { color: #e2f5cc; font-weight: 600; }
+
+.meta-btn { font-size: 0.85rem; opacity: 0.9; }
+.meta-btn:hover { opacity: 1; }
 
 .card {
   width: 56px;

@@ -1,9 +1,9 @@
-// Heuristische KI für Watten: Ansage (Schlag/Trumpf), Bieten, Kartenspiel.
+// Heuristische KI für Watten: Ansage (Schlag/Trumpf), Kartenspiel, "Gehn?"
+// und die Partnerfrage "Kannst du den noch?".
 // Kein perfektes Spiel, aber solide Grundtaktik als Ausgangspunkt (Stufe 1).
 
 import { SUITS, RANKS, rankIndex } from './cards.js';
 import { cardStrength, compareInTrick, sortByStrength, legalPlays } from './rules.js';
-import { SIGNALS } from './chat.js';
 
 function cardWeight(card, announcement) {
   const s = cardStrength(card, announcement);
@@ -22,7 +22,7 @@ export function chooseSchlag(hand) {
   const scoreByRank = {};
   for (const rank of RANKS) {
     const count = hand.filter((c) => c.rank === rank).length;
-    const heightBonus = rankIndex(rank); // hohe Ränge (König/Ass) leicht bevorzugt
+    const heightBonus = rankIndex(rank); // hohe Ränge (König/Sau) leicht bevorzugt
     scoreByRank[rank] = count * 10 + heightBonus;
   }
   let best = RANKS[0];
@@ -52,33 +52,62 @@ export function chooseTrumpf(hand, schlagRank) {
   return bestSuit;
 }
 
-/** Bietentscheidung als Anbieter: soll erhöht oder gepasst werden? */
-export function decideRaise(hand, announcement, currentValue) {
-  const strength = estimateHandStrength(hand, announcement);
-  // Je höher der Einsatz schon ist, desto stärker muss die Hand sein.
-  const threshold = 9 + currentValue * 1.6;
-  return strength >= threshold;
-}
-
-/** Bietentscheidung als Antwortender: halten oder gehen? */
-export function decideHold(hand, announcement, newValue) {
-  const strength = estimateHandStrength(hand, announcement);
-  const threshold = 8 + newValue * 1.4;
-  return strength >= threshold;
-}
-
 /** Entscheidung bei "gestrichen" (es gehen die Vier): halten oder gehen? */
 export function decideHoldForcedFour(hand, announcement) {
   const strength = estimateHandStrength(hand, announcement);
   return strength >= 13;
 }
 
+/** Soll die KI diese Runde spontan "Gehn?" fragen? Nur wenn noch verfügbar. */
+export function decideGehn(hand, announcement, isDecisiveTrick) {
+  if (isDecisiveTrick) return false; // mitten in einer entscheidenden Situation nicht ablenken
+  const strength = estimateHandStrength(hand, announcement);
+  return strength > 17 && Math.random() < 0.35;
+}
+
+/** Antwort auf ein "Gehn?": Ja (gehen), Nein (halten auf 3) oder Vier (nachlegen). */
+export function decideGehnResponse(hand, announcement) {
+  const strength = estimateHandStrength(hand, announcement);
+  if (strength < 10) return 'JA';
+  if (strength > 18) return 'VIER';
+  return 'NEIN';
+}
+
+/** Als Herausforderer, nachdem die Gegenseite mit "Vier" gekontert hat. */
+export function decideGehnFourResponse(hand, announcement) {
+  const strength = estimateHandStrength(hand, announcement);
+  return strength >= 14 ? 'WEITER' : 'RAUS';
+}
+
+/** Soll die KI ihren (noch nicht gezogenen) Partner fragen "Kannst du den noch?" */
+export function decideAskPartner(hand, announcement, isDecisiveTrick) {
+  if (isDecisiveTrick) return false; // hier lieber gleich selbst handeln
+  return Math.random() < 0.5;
+}
+
+/** Antwort auf "Kannst du den noch?": ehrlich anhand der eigenen Hand. */
+export function answerAskPartner({ hand, currentBest, ledSuit, announcement }) {
+  const canBeat = hand.some((c) => compareInTrick(c, currentBest, ledSuit, announcement) > 0);
+  return canBeat ? 'JA' : 'NEIN';
+}
+
 /**
- * Kartenwahl. context: { hand, ledCard, trickPlays: [{seat,card}], announcement,
- *   isDecisiveTrick: bool, mySeat, partnerSeat, partnerIsWinning }
+ * Kartenwahl - kann statt einer Karte auch 'GEHN' (spontan bieten) oder
+ * 'ASK' (Partner fragen "Kannst du den noch?") zurückgeben; die Engine
+ * ruft choosePlay danach mit aktualisiertem Kontext erneut auf.
+ * context: { hand, ledCard, trickPlays: [{seat,card}], announcement,
+ *   isDecisiveTrick, mySeat, partnerSeats, partnerIsWinning, trumpfOderKritisch,
+ *   gehnAvailable, canAsk, receivedAnswer }
  */
 export function choosePlay(context) {
-  const { hand, ledCard, trickPlays, announcement, isDecisiveTrick, partnerIsWinning, trumpfOderKritisch } = context;
+  const {
+    hand, ledCard, trickPlays, announcement, isDecisiveTrick, partnerIsWinning,
+    trumpfOderKritisch, gehnAvailable, canAsk, receivedAnswer,
+  } = context;
+
+  if (gehnAvailable && decideGehn(hand, announcement, isDecisiveTrick)) return 'GEHN';
+  if (canAsk && receivedAnswer == null && decideAskPartner(hand, announcement, isDecisiveTrick)) return 'ASK';
+
   const legal = legalPlays(hand, ledCard, announcement, { trumpfOderKritisch });
   const sorted = sortByStrength(legal, announcement); // schwächste zuerst
 
@@ -97,6 +126,11 @@ export function choosePlay(context) {
 
   const winningCards = sorted.filter((c) => compareInTrick(c, currentBest.card, ledSuit, announcement) > 0);
 
+  if (receivedAnswer === 'JA' && !isDecisiveTrick) {
+    // Partner hat gesagt, er übernimmt den Stich - selbst nichts verschwenden.
+    return sorted[0];
+  }
+
   if (partnerIsWinning && !isDecisiveTrick) {
     // Partner führt bereits: nicht überstechen, niedrigste Karte abwerfen.
     return sorted[0];
@@ -106,18 +140,4 @@ export function choosePlay(context) {
     return winningCards[0]; // knapp und effizient gewinnen
   }
   return sorted[0]; // kann/will nicht gewinnen: niedrigste Karte abwerfen
-}
-
-/**
- * Entscheidet, ob die KI ihrem Partner vor dem eigenen Zug eine Floskel zuruft.
- * Nur relevant, wenn der Partner in diesem Stich noch nicht gespielt hat.
- */
-export function chooseSignal({ hand, announcement }) {
-  if (!announcement) return null;
-  const hasStrong = hand.some((c) => cardStrength(c, announcement).cat >= 2);
-  const hasCritical = hand.some((c) => cardStrength(c, announcement).cat >= 4);
-
-  if (!hasStrong && Math.random() < 0.7) return SIGNALS.MACH_DU;
-  if (hasCritical && Math.random() < 0.55) return SIGNALS.LASS_IHN;
-  return null;
 }

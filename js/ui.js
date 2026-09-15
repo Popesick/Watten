@@ -3,17 +3,17 @@
 
 import { SUIT_SYMBOL, SUIT_COLOR, RANKS, RANK_LABEL, cardId, suitLabel } from './cards.js';
 import { legalPlays } from './rules.js';
-import { SIGNALS, SIGNAL_TEXT, numberWord } from './chat.js';
+import { ASK_TEXT, GEHN_TEXT } from './chat.js';
+
+const TEAM_COLOR = ['#d4af37', '#6fa8dc', '#8bc34a', '#e07a5f'];
 
 export class Ui {
   constructor(container, { characters = {} } = {}) {
     this.container = container;
     this.state = null;
     this.pending = null;
-    this.pendingSignal = null;
     this.pendingConfirm = null;
     this.characters = characters; // seat -> { name, img }
-    this.game = null; // wird von main.js gesetzt, für askPartner()
   }
 
   onLog() {
@@ -39,20 +39,6 @@ export class Ui {
     });
   }
 
-  requestRaiseOrPass(seat, hand, announcement, currentValue) {
-    return new Promise((resolve) => {
-      this.pending = { type: 'raiseOrPass', seat, currentValue, resolve };
-      this.render();
-    });
-  }
-
-  requestHoldOrFold(seat, hand, announcement, newValue) {
-    return new Promise((resolve) => {
-      this.pending = { type: 'holdOrFold', seat, newValue, resolve };
-      this.render();
-    });
-  }
-
   requestHoldOrFoldForcedFour(seat) {
     return new Promise((resolve) => {
       this.pending = { type: 'holdOrFoldForced', seat, resolve };
@@ -67,9 +53,23 @@ export class Ui {
     });
   }
 
-  requestSignal(seat, context) {
+  requestGehnResponse(seat, context) {
     return new Promise((resolve) => {
-      this.pendingSignal = { seat, context, resolve };
+      this.pending = { type: 'gehnResponse', seat, context, resolve };
+      this.render();
+    });
+  }
+
+  requestGehnFourResponse(seat, context) {
+    return new Promise((resolve) => {
+      this.pending = { type: 'gehnFourResponse', seat, context, resolve };
+      this.render();
+    });
+  }
+
+  requestAskAnswer(seat, context) {
+    return new Promise((resolve) => {
+      this.pending = { type: 'askAnswer', seat, context, resolve };
       this.render();
     });
   }
@@ -86,13 +86,6 @@ export class Ui {
     if (!this.pending) return;
     const { resolve } = this.pending;
     this.pending = null;
-    resolve(value);
-  }
-
-  resolveSignal(value) {
-    if (!this.pendingSignal) return;
-    const { resolve } = this.pendingSignal;
-    this.pendingSignal = null;
     resolve(value);
   }
 
@@ -129,12 +122,12 @@ export class Ui {
 
     const scoreboard = `
       <div class="scoreboard">
-        ${s.variant.teamNames.map((name, i) => `<div class="score-item">${name}: <b>${s.scores[i]}</b> / ${s.targetScore}</div>`).join('')}
+        ${s.variant.teamNames.map((name, i) => `<div class="score-item"><span class="team-dot" style="background:${TEAM_COLOR[i]}"></span>${name}: <b>${s.scores[i]}</b> / ${s.targetScore}</div>`).join('')}
         <div class="score-item">Runde ${s.roundNumber}${s.roundValue ? ` · Einsatz: ${s.roundValue}` : ''}</div>
       </div>`;
 
     const announcementBanner = s.announcement
-      ? `<div class="announcement-banner">Trumpf: <b>${suitLabel(s.announcement.trumpSuit)}</b> ${SUIT_SYMBOL[s.announcement.trumpSuit]} &nbsp;|&nbsp; Schlag: <b>${RANK_LABEL[s.announcement.schlagRank]}</b>${s.currentTrick.trumpfOderKritisch ? ' &nbsp;|&nbsp; <span style="color:#ffb347">Trumpf oder Kritisch!</span>' : ''}</div>`
+      ? `<div class="announcement-banner">Trumpf: <b style="color:${SUIT_COLOR[s.announcement.trumpSuit]}">${suitLabel(s.announcement.trumpSuit)}</b> ${SUIT_SYMBOL[s.announcement.trumpSuit]} &nbsp;|&nbsp; Schlag: <b>${RANK_LABEL[s.announcement.schlagRank]}</b>${s.currentTrick.trumpfOderKritisch ? ' &nbsp;|&nbsp; <span style="color:#ffb347">Trumpf oder Kritisch!</span>' : ''}</div>`
       : `<div class="announcement-banner">Ansage läuft…</div>`;
 
     const seatsHtml = s.seatTypes
@@ -148,7 +141,6 @@ export class Ui {
       : `<div style="color:var(--muted)">Noch keine Karte gespielt</div>`;
 
     const actionPanel = this.renderActionPanel();
-    const signalPanel = this.renderSignalPanel();
     const confirmPanel = this.renderConfirmPanel();
 
     const logHtml = s.messages
@@ -161,7 +153,6 @@ export class Ui {
         ${scoreboard}
         ${announcementBanner}
         ${actionPanel}
-        ${signalPanel}
         ${confirmPanel}
         <div class="trick-area">${trickHtml}</div>
         <div class="seats-grid">${seatsHtml}</div>
@@ -175,6 +166,10 @@ export class Ui {
     this.wireEvents();
   }
 
+  teamOf(seat, s) {
+    return s.variant.teams.findIndex((t) => t.includes(seat));
+  }
+
   hasPartner(seat, s) {
     const team = s.variant.teams.find((t) => t.includes(seat));
     return team && team.length === 2;
@@ -185,6 +180,7 @@ export class Ui {
     const isTurn = this.pending && this.pending.seat === seat;
     const character = this.characters[seat];
     const badge = type === 'human' ? 'Mensch' : character ? character.name : 'KI';
+    const teamIdx = this.teamOf(seat, s);
     let handHtml;
     if (type === 'human') {
       const isCardPlayTurn = this.pending && this.pending.type === 'cardPlay' && this.pending.seat === seat;
@@ -204,16 +200,14 @@ export class Ui {
     const portraitStyle = character
       ? ` style="background-image:url('${character.img}')"`
       : '';
-    const askBtn =
-      type === 'human' && s.phase === 'playing' && this.hasPartner(seat, s)
-        ? `<button class="ask-partner-btn" data-ask-partner="${seat}">🗣️ Hast du noch was?</button>`
-        : '';
 
     return `
       <div class="seat-box${isTurn ? ' turn' : ''}${character ? ' has-portrait' : ''}" data-seat="${seat}"${portraitStyle}>
-        <div class="seat-title"><span>Sitz ${seat + 1}</span><span class="badge">${badge}</span></div>
+        <div class="seat-title">
+          <span><span class="team-dot" style="background:${TEAM_COLOR[teamIdx]}"></span>Sitz ${seat + 1}</span>
+          <span class="badge">${badge}</span>
+        </div>
         <div class="hand" data-hand-seat="${seat}">${handHtml}</div>
-        ${askBtn}
       </div>`;
   }
 
@@ -228,23 +222,12 @@ export class Ui {
     }
     if (p.type === 'trumpf') {
       const buttons = Object.keys(SUIT_SYMBOL)
-        .map((suit) => `<button class="action-btn" data-trumpf="${suit}">${suitLabel(suit)} ${SUIT_SYMBOL[suit]}</button>`)
+        .map(
+          (suit) =>
+            `<button class="action-btn" data-trumpf="${suit}" style="color:${SUIT_COLOR[suit]};border-color:${SUIT_COLOR[suit]}">${suitLabel(suit)} ${SUIT_SYMBOL[suit]}</button>`
+        )
         .join('');
       return `<div class="action-panel"><div class="prompt">Sitz ${p.seat + 1}: Trumpf ansagen (Schlag ist ${RANK_LABEL[p.schlagRank]})</div><div class="action-buttons">${buttons}</div></div>`;
-    }
-    if (p.type === 'raiseOrPass') {
-      return `<div class="action-panel"><div class="prompt">Sitz ${p.seat + 1}: Willst du fragen "Geht ihr?" (aktuell ${p.currentValue} Punkte)</div>
-        <div class="action-buttons">
-          <button class="action-btn" data-bid="raise">Ja – "${numberWord(p.currentValue + 1)}!"</button>
-          <button class="action-btn" data-bid="pass">Nein, bei ${p.currentValue} Punkten spielen</button>
-        </div></div>`;
-    }
-    if (p.type === 'holdOrFold') {
-      return `<div class="action-panel"><div class="prompt">Sitz ${p.seat + 1}: Geht ihr? (Gegner sagt "${numberWord(p.newValue)}!")</div>
-        <div class="action-buttons">
-          <button class="action-btn" data-bid="hold">Nein, wir gehen nicht! (weiter auf ${p.newValue})</button>
-          <button class="action-btn danger" data-bid="fold">Ja, wir gehen.</button>
-        </div></div>`;
     }
     if (p.type === 'holdOrFoldForced') {
       return `<div class="action-panel"><div class="prompt">Sitz ${p.seat + 1}: Ihr seid gestrichen – "es gehen die Vier"</div>
@@ -253,23 +236,41 @@ export class Ui {
           <button class="action-btn danger" data-bid="fold">Gehen (Gegner bekommt 2)</button>
         </div></div>`;
     }
+    if (p.type === 'gehnResponse') {
+      return `<div class="action-panel gehn-panel"><div class="prompt">Sitz ${p.seat + 1}: "${GEHN_TEXT.QUESTION}"</div>
+        <div class="action-buttons">
+          <button class="action-btn" data-gehn="JA">Ja</button>
+          <button class="action-btn" data-gehn="NEIN">Nein</button>
+          <button class="action-btn" data-gehn="VIER">Vier</button>
+        </div></div>`;
+    }
+    if (p.type === 'gehnFourResponse') {
+      return `<div class="action-panel gehn-panel"><div class="prompt">Sitz ${p.seat + 1}: Gegner sagt "Vier!"</div>
+        <div class="action-buttons">
+          <button class="action-btn" data-gehn="WEITER">Ok, weiter</button>
+          <button class="action-btn danger" data-gehn="RAUS">Ich bin raus</button>
+        </div></div>`;
+    }
+    if (p.type === 'askAnswer') {
+      return `<div class="action-panel ask-panel"><div class="prompt">Sitz ${p.seat + 1}: Partner fragt "${ASK_TEXT.QUESTION}"</div>
+        <div class="action-buttons">
+          <button class="action-btn" data-ask="JA">${ASK_TEXT.JA}</button>
+          <button class="action-btn" data-ask="NEIN">${ASK_TEXT.NEIN}</button>
+        </div></div>`;
+    }
     if (p.type === 'cardPlay') {
-      return `<div class="action-panel"><div class="prompt">Sitz ${p.seat + 1}: wähle eine Karte</div></div>`;
+      const ctx = p.context || {};
+      const metaButtons = [];
+      if (ctx.gehnAvailable) metaButtons.push(`<button class="action-btn meta-btn" data-meta="GEHN">🎲 Gehn?</button>`);
+      if (ctx.canAsk) metaButtons.push(`<button class="action-btn meta-btn" data-meta="ASK">🗣️ ${ASK_TEXT.QUESTION}</button>`);
+      const infoLine = ctx.receivedAnswer
+        ? `<div class="prompt" style="margin-top:6px">Partner: "${ASK_TEXT[ctx.receivedAnswer]}"</div>`
+        : '';
+      return `<div class="action-panel"><div class="prompt">Sitz ${p.seat + 1}: wähle eine Karte</div>${infoLine}${
+        metaButtons.length ? `<div class="action-buttons">${metaButtons.join('')}</div>` : ''
+      }</div>`;
     }
     return '';
-  }
-
-  renderSignalPanel() {
-    const p = this.pendingSignal;
-    if (!p) return '';
-    return `<div class="action-panel signal-panel">
-      <div class="prompt">Sitz ${p.seat + 1} zu Sitz ${p.context.partnerSeat + 1}: dem Partner etwas zurufen?</div>
-      <div class="action-buttons">
-        <button class="action-btn" data-signal="${SIGNALS.MACH_DU}">🗣️ Ich kann nicht, mach du den Stich!</button>
-        <button class="action-btn" data-signal="${SIGNALS.LASS_IHN}">🗣️ Lass ihn, das ist meiner!</button>
-        <button class="action-btn" data-signal="NONE">… (nichts sagen)</button>
-      </div>
-    </div>`;
   }
 
   renderConfirmPanel() {
@@ -303,23 +304,20 @@ export class Ui {
       btn.addEventListener('click', () => this.resolvePending(btn.dataset.trumpf));
     });
     this.container.querySelectorAll('[data-bid]').forEach((btn) => {
-      const map = { raise: 'raise', pass: 'pass', hold: 'hold', fold: 'fold' };
+      const map = { hold: 'hold', fold: 'fold' };
       btn.addEventListener('click', () => this.resolvePending(map[btn.dataset.bid]));
     });
-    this.container.querySelectorAll('[data-signal]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const v = btn.dataset.signal;
-        this.resolveSignal(v === 'NONE' ? null : v);
-      });
+    this.container.querySelectorAll('[data-gehn]').forEach((btn) => {
+      btn.addEventListener('click', () => this.resolvePending(btn.dataset.gehn));
+    });
+    this.container.querySelectorAll('[data-ask]').forEach((btn) => {
+      btn.addEventListener('click', () => this.resolvePending(btn.dataset.ask));
+    });
+    this.container.querySelectorAll('[data-meta]').forEach((btn) => {
+      btn.addEventListener('click', () => this.resolvePending(btn.dataset.meta));
     });
     this.container.querySelectorAll('[data-confirm]').forEach((btn) => {
       btn.addEventListener('click', () => this.resolveConfirm());
-    });
-    this.container.querySelectorAll('[data-ask-partner]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const seat = parseInt(btn.dataset.askPartner, 10);
-        if (this.game) this.game.askPartner(seat);
-      });
     });
     if (this.pending && this.pending.type === 'cardPlay') {
       const handEl = this.container.querySelector(`[data-hand-seat="${this.pending.seat}"]`);

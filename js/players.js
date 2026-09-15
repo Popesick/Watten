@@ -2,7 +2,10 @@
 // AIController entscheidet per Heuristik (ai.js). Die Engine unterscheidet nicht,
 // wer am Zug ist.
 
-import { chooseSchlag, chooseTrumpf, decideRaise, decideHold, decideHoldForcedFour, choosePlay, chooseSignal } from './ai.js';
+import {
+  chooseSchlag, chooseTrumpf, decideHoldForcedFour, choosePlay,
+  decideGehnResponse, decideGehnFourResponse, answerAskPartner,
+} from './ai.js';
 
 export class HumanController {
   constructor(seat, ui) {
@@ -19,14 +22,6 @@ export class HumanController {
     return this.ui.requestTrumpf(this.seat, hand, schlagRank);
   }
 
-  async decideRaiseOrPass(hand, announcement, currentValue) {
-    return this.ui.requestRaiseOrPass(this.seat, hand, announcement, currentValue);
-  }
-
-  async decideHoldOrFold(hand, announcement, newValue) {
-    return this.ui.requestHoldOrFold(this.seat, hand, announcement, newValue);
-  }
-
   async decideHoldOrFoldForcedFour(hand, announcement) {
     return this.ui.requestHoldOrFoldForcedFour(this.seat, hand, announcement);
   }
@@ -35,8 +30,16 @@ export class HumanController {
     return this.ui.requestCardPlay(this.seat, context);
   }
 
-  async chooseSignal(context) {
-    return this.ui.requestSignal(this.seat, context);
+  async decideGehnResponse(context) {
+    return this.ui.requestGehnResponse(this.seat, context);
+  }
+
+  async decideGehnFourResponse(context) {
+    return this.ui.requestGehnFourResponse(this.seat, context);
+  }
+
+  async answerAskPartner(context) {
+    return this.ui.requestAskAnswer(this.seat, context);
   }
 }
 
@@ -60,16 +63,6 @@ export class AIController {
     return chooseTrumpf(hand, schlagRank);
   }
 
-  async decideRaiseOrPass(hand, announcement, currentValue) {
-    await thinkDelay();
-    return decideRaise(hand, announcement, currentValue) ? 'raise' : 'pass';
-  }
-
-  async decideHoldOrFold(hand, announcement, newValue) {
-    await thinkDelay();
-    return decideHold(hand, announcement, newValue) ? 'hold' : 'fold';
-  }
-
   async decideHoldOrFoldForcedFour(hand, announcement) {
     await thinkDelay();
     return decideHoldForcedFour(hand, announcement) ? 'hold' : 'fold';
@@ -80,8 +73,18 @@ export class AIController {
     return choosePlay(context);
   }
 
-  async chooseSignal(context) {
+  async decideGehnResponse(context) {
     await thinkDelay();
-    return chooseSignal(context);
+    return decideGehnResponse(context.hand, context.announcement);
+  }
+
+  async decideGehnFourResponse(context) {
+    await thinkDelay();
+    return decideGehnFourResponse(context.hand, context.announcement);
+  }
+
+  async answerAskPartner(context) {
+    await thinkDelay();
+    return answerAskPartner(context);
   }
 }

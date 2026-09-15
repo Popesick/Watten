@@ -10,6 +10,10 @@ const CHARACTERS = [
   { name: 'Loisl', img: 'assets/img/char-loisl.png' },
   { name: 'Schorsch', img: 'assets/img/char-schorsch.png' },
   { name: 'Sepp', img: 'assets/img/char-sepp.png' },
+  { name: 'Hanse', img: 'assets/img/char-hanse.png' },
+  { name: 'Lenerl', img: 'assets/img/char-lenerl.png' },
+  { name: 'Brigitte', img: 'assets/img/char-brigitte.png' },
+  { name: 'Monika', img: 'assets/img/char-monika.png' },
 ];
 
 const setupState = {
@@ -100,11 +104,16 @@ function renderSetup() {
 }
 
 function assignCharacters(seatTypes) {
+  const shuffled = CHARACTERS.slice();
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
   const characters = {};
   let nextCharacter = 0;
   seatTypes.forEach((type, seat) => {
     if (type === 'ai') {
-      characters[seat] = CHARACTERS[nextCharacter % CHARACTERS.length];
+      characters[seat] = shuffled[nextCharacter % shuffled.length];
       nextCharacter++;
     }
   });
@@ -124,7 +133,6 @@ function startGame() {
     seatTypes: setupState.seatTypes.slice(),
     ui,
   });
-  ui.game = game;
 
   const players = setupState.seatTypes
     .slice(0, setupState.playerCount)

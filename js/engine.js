@@ -1,19 +1,21 @@
 // Spiel-Engine für "Offenes Watten", 2-4 Spieler.
-// Orchestriert Runde für Runde: Austeilen, Ansage (Schlag/Trumpf), Bieten,
+// Orchestriert Runde für Runde: Austeilen, Ansage (Schlag/Trumpf),
 // Stiche spielen, Punkte vergeben. Fragt Entscheidungen bei den jeweiligen
 // Player-Controllern (Human/AI) ab, ohne zu unterscheiden, wer dahintersteckt.
 //
 // Dokumentierte Vereinfachungen gegenüber den vollen Grundregeln:
 // - Nur "Offenes Watten" (keine verdeckte Ansage / kein Blindspiel).
 // - Kein Schlagtausch, kein "Schöner", kein "nichts ansagen".
-// - Beim Bieten entscheidet je Team ein "Wortführer" (der erste Sitzplatz
-//   des Teams) stellvertretend für das ganze Team.
-// - "Es gehen die Vier" wird nur im klassischen 2-Team-Fall (2er/4er) angewendet.
+// - "Gehn?" (spontanes Bieten) ist jederzeit möglich, wenn ein Spieler am
+//   Zug ist, aber nur EINMAL pro Runde. Beim Bieten/Antworten entscheidet
+//   je Team ein "Wortführer" (der erste Sitzplatz des Teams).
+// - "Es gehen die Vier" wird nur im klassischen 2-Team-Fall (2er/4er)
+//   angewendet; in dieser Runde ist "Gehn?" dann nicht zusätzlich möglich.
 
 import { createDeck, shuffle, suitLabel, cardLabel } from './cards.js';
-import { legalPlays, trickWinner, cardsEqual, compareInTrick, cardStrength, haubeCard, describeWin, hasMaschin } from './rules.js';
+import { legalPlays, trickWinner, cardsEqual, compareInTrick, haubeCard, describeWin, hasMaschin } from './rules.js';
 import { VARIANTS, teamOfSeat } from './variants.js';
-import { SIGNALS, SIGNAL_TEXT, numberWord } from './chat.js';
+import { ASK_TEXT, GEHN_TEXT } from './chat.js';
 
 export class WattenGame {
   constructor({ playerCount, targetScore, seatTypes, ui }) {
@@ -33,6 +35,7 @@ export class WattenGame {
     this.phase = 'setup';
     this.gameOver = false;
     this.winnerTeam = null;
+    this.gehnUsedThisRound = false;
   }
 
   setPlayers(players) {
@@ -117,6 +120,7 @@ export class WattenGame {
     this.announcement = null;
     this.currentTrick = { ledCard: null, plays: [] };
     this.stitches = this.variant.teams.map(() => 0);
+    this.roundValue = 2;
     this.emit();
 
     for (let seat = 0; seat < this.n; seat++) {
@@ -142,12 +146,10 @@ export class WattenGame {
     );
     this.emit();
 
-    let activeTeams = this.variant.teams.map((_, i) => i);
-    let roundResult = null;
-
     const forcedGestrichenTeam = this.checkForcedFour();
     if (forcedGestrichenTeam !== null) {
       this.roundValue = 4;
+      this.gehnUsedThisRound = true; // "Gehn?" entfällt, wenn "es gehen die Vier" bereits greift
       this.phase = 'bidding';
       this.emit();
       const captain = this.captainOf(forcedGestrichenTeam);
@@ -160,95 +162,83 @@ export class WattenGame {
         this.log(
           `${this.variant.teamNames[forcedGestrichenTeam]} ist gestrichen und geht bei "es gehen die Vier" – ${this.variant.teamNames[otherTeam]} erhält 2 Punkte.`
         );
-        roundResult = { fold: true, winnerTeam: otherTeam, points: 2 };
-      } else {
-        this.log(`${this.variant.teamNames[forcedGestrichenTeam]} hält bei "es gehen die Vier" – es wird um 4 Punkte gespielt.`);
+        this.scores[otherTeam] += 2;
+        this.log(`Runde beendet ohne Stichspiel. ${this.variant.teamNames[otherTeam]} erhält 2 Punkte.`);
+        this.dealerIndex = (this.dealerIndex + 1) % this.n;
+        this.emit();
+        return;
       }
+      this.log(`${this.variant.teamNames[forcedGestrichenTeam]} hält bei "es gehen die Vier" – es wird um 4 Punkte gespielt.`);
     } else {
-      // "Geht ihr?"-Bieten ist vorerst deaktiviert (noch nicht rund) - jede
-      // normale Runde wird fest um 2 Punkte gespielt.
-      this.roundValue = 2;
+      this.gehnUsedThisRound = false;
     }
 
-    if (roundResult && roundResult.fold) {
-      this.scores[roundResult.winnerTeam] += roundResult.points;
-      this.log(`Runde beendet ohne Stichspiel. ${this.variant.teamNames[roundResult.winnerTeam]} erhält ${roundResult.points} Punkte.`);
-      this.dealerIndex = (this.dealerIndex + 1) % this.n;
-      this.emit();
-      return;
-    }
-
-    const finalActiveTeams = roundResult && roundResult.activeTeams ? roundResult.activeTeams : activeTeams;
-    await this.playTricks(schlagSeat, finalActiveTeams);
+    const activeTeams = this.variant.teams.map((_, i) => i);
+    await this.playTricks(schlagSeat, activeTeams);
     this.dealerIndex = (this.dealerIndex + 1) % this.n;
   }
 
-  // Aktuell nicht aufgerufen (siehe playRound) - "Geht ihr?"-Bieten ist
-  // vorerst deaktiviert, bis das Verhalten rund läuft. Bleibt hier stehen,
-  // um es später wieder einzuhängen.
-  async biddingPhase(schlagSeat, allTeams) {
-    let value = 2;
-    let activeTeams = allTeams.slice();
-    let proposer = teamOfSeat(this.variant, schlagSeat);
-
-    while (true) {
-      const captainProposer = this.captainOf(proposer);
-      const action = await this.players[captainProposer].decideRaiseOrPass(
-        this.hands[captainProposer],
-        this.announcement,
-        value
-      );
-      if (action === 'pass') {
-        this.roundValue = value;
-        this.log(`${this.variant.teamNames[proposer]} fragt nicht weiter, es bleibt bei ${value} Punkten.`);
-        this.emit();
-        return { fold: false, activeTeams };
-      }
-
-      const newValue = value + 1;
-      this.log(`${this.variant.teamNames[proposer]}: "${numberWord(newValue)}!" – Geht ihr?`);
-      this.emit();
-
-      const responderTeams = activeTeams.filter((t) => t !== proposer);
-      const holds = [];
-      for (const t of responderTeams) {
-        const captain = this.captainOf(t);
-        const decision = await this.players[captain].decideHoldOrFold(this.hands[captain], this.announcement, newValue);
-        if (decision === 'hold') {
-          holds.push(t);
-          this.log(`${this.variant.teamNames[t]}: "Nein, wir gehen nicht!" (weiter auf ${newValue})`);
-        } else {
-          this.log(`${this.variant.teamNames[t]}: "Ja, wir gehen." – ${this.variant.teamNames[proposer]} erhält ${value} Punkte.`);
-        }
-      }
-      this.emit();
-
-      if (holds.length === 0) {
-        return { fold: true, winnerTeam: proposer, points: value };
-      }
-      activeTeams = [proposer, ...holds];
-      value = newValue;
-      proposer = holds[0];
-    }
-  }
-
-  /** "Hast du noch was?" - jederzeit stellbare Frage an den eigenen Partner. */
-  askPartner(fromSeat) {
-    const team = teamOfSeat(this.variant, fromSeat);
-    const partnerSeat = this.variant.teams[team].find((s) => s !== fromSeat);
-    if (partnerSeat === undefined) return;
-    this.log(`Sitz ${fromSeat + 1}: "Hast du noch was?"`);
-    if (this.seatTypes[partnerSeat] === 'ai' && this.announcement) {
-      const hand = this.hands[partnerSeat] || [];
-      const hasCritical = hand.some((c) => cardStrength(c, this.announcement).cat >= 4);
-      const hasStrong = hand.some((c) => cardStrength(c, this.announcement).cat >= 2);
-      let answer;
-      if (hasCritical) answer = 'Ja, hab noch was Gutes.';
-      else if (hasStrong) answer = 'Ja, einen Trumpf.';
-      else answer = 'Nein, nichts mehr.';
-      this.log(`Sitz ${partnerSeat + 1}: "${answer}"`);
-    }
+  /**
+   * "Gehn?" - spontanes Bieten, das jederzeit möglich ist, wenn ein Spieler
+   * am Zug ist (siehe playTricks). challengerSeat fragt die Gegenseite.
+   * Rückgabe: true, wenn die Runde dadurch sofort beendet wurde (Punkte
+   * sind bereits vergeben), sonst false (Runde läuft weiter, ggf. mit
+   * erhöhtem roundValue).
+   */
+  async runGehnNegotiation(challengerSeat) {
+    const challengerTeam = teamOfSeat(this.variant, challengerSeat);
+    const opponentTeams = this.variant.teams.map((_, i) => i).filter((t) => t !== challengerTeam);
+    this.log(`Sitz ${challengerSeat + 1}: "${GEHN_TEXT.QUESTION}"`);
     this.emit();
+
+    // Bei mehr als einer Gegenseite (3er-Watten) einzeln nacheinander fragen;
+    // die erste Antwort, die nicht "Ja" ist, bestimmt das weitere Vorgehen.
+    let deciding = null;
+    for (const oppTeam of opponentTeams) {
+      const oppCaptain = this.captainOf(oppTeam);
+      const resp = await this.players[oppCaptain].decideGehnResponse({
+        hand: this.hands[oppCaptain],
+        announcement: this.announcement,
+      });
+      this.log(`${this.variant.teamNames[oppTeam]}: "${GEHN_TEXT[resp]}"`);
+      this.emit();
+      if (resp !== 'JA') {
+        deciding = { oppTeam, resp };
+        break;
+      }
+    }
+
+    if (!deciding) {
+      // Alle Gegner sind gegangen.
+      this.scores[challengerTeam] += 2;
+      this.log(`${this.variant.teamNames[challengerTeam]} erhält 2 Punkte. Runde beendet.`);
+      this.emit();
+      return true;
+    }
+
+    if (deciding.resp === 'NEIN') {
+      this.roundValue = 3;
+      this.log(`Es wird um 3 Punkte weitergespielt.`);
+      this.emit();
+      return false;
+    }
+
+    // 'VIER' - der Herausforderer muss nun entscheiden: weiter auf 4, oder raus.
+    const resp2 = await this.players[challengerSeat].decideGehnFourResponse({
+      hand: this.hands[challengerSeat],
+      announcement: this.announcement,
+    });
+    this.log(`${this.variant.teamNames[challengerTeam]}: "${GEHN_TEXT[resp2]}"`);
+    if (resp2 === 'WEITER') {
+      this.roundValue = 4;
+      this.log(`Es wird um 4 Punkte weitergespielt.`);
+      this.emit();
+      return false;
+    }
+    this.scores[deciding.oppTeam] += 2;
+    this.log(`${this.variant.teamNames[deciding.oppTeam]} erhält 2 Punkte. Runde beendet.`);
+    this.emit();
+    return true;
   }
 
   rotateFrom(seats, startSeat) {
@@ -275,51 +265,25 @@ export class WattenGame {
       let ledCard = null;
       let trumpfOderKritisch = false;
       this.currentTrick = { ledCard: null, plays: [], trumpfOderKritisch: false };
-      const signaledTeams = new Set();
-      const pendingSignals = {}; // teamIdx -> { fromSeat, toSeat, signal }
+      const askedThisTrick = new Set();
       this.emit();
 
       for (const seat of order) {
         const hand = this.hands[seat];
         const teamOfCurrent = teamOfSeat(this.variant, seat);
-        const currentBest = trickPlays.length
+        const currentBestPlay = trickPlays.length
           ? trickPlays.reduce((best, p) =>
               compareInTrick(p.card, best.card, ledCard.suit, this.announcement) > 0 ? p : best
             )
           : null;
         const partnerSeats = this.variant.teams[teamOfCurrent].filter((s) => s !== seat);
-        const partnerIsWinning = currentBest ? partnerSeats.includes(currentBest.seat) : false;
+        const partnerIsWinning = currentBestPlay ? partnerSeats.includes(currentBestPlay.seat) : false;
         const isDecisiveTrick = this.stitches.some((s) => s === 2);
         const hasPartner = partnerSeats.length === 1;
         const partnerSeat = hasPartner ? partnerSeats[0] : null;
         const partnerAlreadyPlayed = partnerSeat !== null && trickPlays.some((p) => p.seat === partnerSeat);
 
-        // Vor dem eigenen Zug: darf (und will) dieser Sitz seinem Partner eine Floskel zurufen?
-        const canSignal = hasPartner && !partnerAlreadyPlayed && !signaledTeams.has(teamOfCurrent);
-        if (canSignal) {
-          const signal = await this.players[seat].chooseSignal({
-            hand,
-            ledCard,
-            trickPlays,
-            announcement: this.announcement,
-            isDecisiveTrick,
-            mySeat: seat,
-            partnerSeat,
-            canSignal: true,
-          });
-          signaledTeams.add(teamOfCurrent);
-          if (signal) {
-            pendingSignals[teamOfCurrent] = { fromSeat: seat, toSeat: partnerSeat, signal };
-            this.log(`Sitz ${seat + 1} zu Sitz ${partnerSeat + 1}: "${SIGNAL_TEXT[signal]}"`);
-            this.emit();
-          }
-        }
-
-        const incoming = pendingSignals[teamOfCurrent];
-        const receivedSignal = incoming && incoming.toSeat === seat ? incoming.signal : null;
-        if (receivedSignal) delete pendingSignals[teamOfCurrent];
-
-        const context = {
+        let context = {
           hand,
           ledCard,
           trickPlays,
@@ -328,35 +292,54 @@ export class WattenGame {
           mySeat: seat,
           partnerSeats,
           partnerIsWinning,
-          receivedSignal,
           trumpfOderKritisch,
+          gehnAvailable: !this.gehnUsedThisRound,
+          canAsk: hasPartner && !partnerAlreadyPlayed && ledCard !== null && !askedThisTrick.has(teamOfCurrent),
+          receivedAnswer: null,
         };
 
-        let card = await this.players[seat].choosePlay(context);
+        let action = await this.players[seat].choosePlay(context);
+
+        // "Gehn?" und "Kannst du den noch?" sind Nebenhandlungen, die dem
+        // eigentlichen Kartenausspielen vorausgehen können - danach ist
+        // wieder derselbe Sitz mit der (aktualisierten) Karte am Zug.
+        let guard = 0;
+        while ((action === 'GEHN' || action === 'ASK') && guard < 4) {
+          guard++;
+          if (action === 'GEHN' && context.gehnAvailable) {
+            this.gehnUsedThisRound = true;
+            const ended = await this.runGehnNegotiation(seat);
+            if (ended) return; // Runde vorbei, Punkte bereits vergeben
+            context = { ...context, gehnAvailable: false };
+          } else if (action === 'ASK' && context.canAsk) {
+            askedThisTrick.add(teamOfCurrent);
+            this.log(`Sitz ${seat + 1} zu Sitz ${partnerSeat + 1}: "${ASK_TEXT.QUESTION}"`);
+            this.emit();
+            const currentBestCard = trickPlays.reduce((best, p) =>
+              compareInTrick(p.card, best.card, ledCard.suit, this.announcement) > 0 ? p : best
+            ).card;
+            const answer = await this.players[partnerSeat].answerAskPartner({
+              hand: this.hands[partnerSeat],
+              currentBest: currentBestCard,
+              ledSuit: ledCard.suit,
+              announcement: this.announcement,
+            });
+            this.log(`Sitz ${partnerSeat + 1}: "${ASK_TEXT[answer]}"`);
+            this.emit();
+            context = { ...context, canAsk: false, receivedAnswer: answer };
+          } else {
+            break; // Option nicht (mehr) verfügbar - Sicherheitsnetz
+          }
+          action = await this.players[seat].choosePlay(context);
+        }
+
+        let card = action;
         const legal = legalPlays(hand, ledCard, this.announcement, { trumpfOderKritisch });
-        if (!card || !legal.some((c) => cardsEqual(c, card))) {
+        if (!card || typeof card !== 'object' || !legal.some((c) => cardsEqual(c, card))) {
           card = legal[0]; // Absicherung gegen ungültige/leere Antworten
         }
 
         this.hands[seat] = hand.filter((c) => !cardsEqual(c, card));
-
-        if (receivedSignal) {
-          const priorBest = trickPlays.length
-            ? trickPlays.reduce((best, p) =>
-                compareInTrick(p.card, best.card, ledCard ? ledCard.suit : card.suit, this.announcement) > 0 ? p : best
-              )
-            : null;
-          const triedToWin = priorBest
-            ? compareInTrick(card, priorBest.card, ledCard.suit, this.announcement) > 0
-            : cardStrength(card, this.announcement).cat >= 2;
-          let response;
-          if (receivedSignal === SIGNALS.MACH_DU) {
-            response = triedToWin ? 'Ok, mach ich!' : 'Ich kann nicht.';
-          } else {
-            response = triedToWin ? 'Nein, meiner!' : 'Ok.';
-          }
-          this.log(`Sitz ${seat + 1}: "${response}"`);
-        }
 
         const wasLeader = !ledCard;
         trickPlays.push({ seat, card });
