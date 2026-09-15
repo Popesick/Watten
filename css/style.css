@@ -226,8 +226,6 @@ h1, h2, h3 { margin: 0 0 8px; }
   background: repeating-linear-gradient(45deg, #7a1f1f, #7a1f1f 6px, #5a1414 6px, #5a1414 12px);
   border: 1px solid #3a0a0a;
 }
-.card.weli { border: 2px solid var(--gold); }
-
 .trick-area {
   background: rgba(0,0,0,0.3);
   border-radius: 12px;

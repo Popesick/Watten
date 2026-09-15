@@ -1,14 +1,14 @@
 // Heuristische KI für Watten: Ansage (Schlag/Trumpf), Bieten, Kartenspiel.
 // Kein perfektes Spiel, aber solide Grundtaktik als Ausgangspunkt (Stufe 1).
 
-import { SUITS, RANKS, rankIndex, isWeli } from './cards.js';
+import { SUITS, RANKS, rankIndex } from './cards.js';
 import { cardStrength, compareInTrick, sortByStrength, legalPlays } from './rules.js';
 import { SIGNALS } from './chat.js';
 
 function cardWeight(card, announcement) {
   const s = cardStrength(card, announcement);
   // Grobe, monoton steigende Gewichtung je Kategorie, für Handstärke-Schätzung.
-  const catBase = { 1: 0, 2: 8, 3: 16, 4: 20, 5: 22, 6: 23, 7: 24 }[s.cat] || 0;
+  const catBase = { 1: 0, 2: 8, 3: 16, 4: 20, 5: 22, 6: 24 }[s.cat] || 0;
   return catBase + Math.max(0, s.val);
 }
 
@@ -19,9 +19,6 @@ export function estimateHandStrength(hand, announcement) {
 
 /** Schlag-Ansage: Spieler kennt Trumpf noch nicht. Wählt Rang mit bestem Potenzial. */
 export function chooseSchlag(hand) {
-  if (hand.some((c) => isWeli(c))) {
-    return 'Weli'; // Weli in der Hand: fast immer die stärkste Wahl (garantiert Spitzenkarte).
-  }
   const scoreByRank = {};
   for (const rank of RANKS) {
     const count = hand.filter((c) => c.rank === rank).length;
@@ -45,7 +42,7 @@ export function chooseTrumpf(hand, schlagRank) {
     for (const card of hand) {
       const s = cardStrength(card, ann);
       score += cardWeight(card, ann);
-      if (s.cat >= 4) score += 15; // Rechte/Guete/Weli-Schlag im eigenen Blatt ist viel wert
+      if (s.cat >= 4) score += 15; // Haube/Guete/Kritisch im eigenen Blatt ist viel wert
     }
     if (score > bestScore) {
       bestScore = score;

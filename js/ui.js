@@ -107,10 +107,9 @@ export class Ui {
     if (!faceUp) {
       return `<div class="card back"></div>`;
     }
-    const weliClass = card.rank === 'Weli' ? ' weli' : '';
-    const cls = `card${weliClass}${clickable && !disabled ? ' clickable' : ''}${disabled ? ' disabled' : ''}`;
+    const cls = `card${clickable && !disabled ? ' clickable' : ''}${disabled ? ' disabled' : ''}`;
     const color = SUIT_COLOR[card.suit];
-    const label = card.rank === 'Weli' ? 'Weli' : RANK_LABEL[card.rank];
+    const label = RANK_LABEL[card.rank];
     const symbol = SUIT_SYMBOL[card.suit];
     return `<div class="${cls}" style="color:${color}" data-suit="${card.suit}" data-rank="${card.rank}">
       <div class="rank">${label}</div>
@@ -124,6 +123,7 @@ export class Ui {
 
     if (s.gameOver) {
       this.container.innerHTML = this.renderGameOver(s);
+      this.wireEvents();
       return;
     }
 
@@ -134,7 +134,7 @@ export class Ui {
       </div>`;
 
     const announcementBanner = s.announcement
-      ? `<div class="announcement-banner">Trumpf: <b>${suitLabel(s.announcement.trumpSuit)}</b> ${SUIT_SYMBOL[s.announcement.trumpSuit]} &nbsp;|&nbsp; Schlag: <b>${s.announcement.schlagRank === 'Weli' ? 'Weli' : RANK_LABEL[s.announcement.schlagRank]}</b>${s.currentTrick.trumpfOderKritisch ? ' &nbsp;|&nbsp; <span style="color:#ffb347">Trumpf oder Kritisch!</span>' : ''}</div>`
+      ? `<div class="announcement-banner">Trumpf: <b>${suitLabel(s.announcement.trumpSuit)}</b> ${SUIT_SYMBOL[s.announcement.trumpSuit]} &nbsp;|&nbsp; Schlag: <b>${RANK_LABEL[s.announcement.schlagRank]}</b>${s.currentTrick.trumpfOderKritisch ? ' &nbsp;|&nbsp; <span style="color:#ffb347">Trumpf oder Kritisch!</span>' : ''}</div>`
       : `<div class="announcement-banner">Ansage läuft…</div>`;
 
     const seatsHtml = s.seatTypes
@@ -221,8 +221,8 @@ export class Ui {
     const p = this.pending;
     if (!p) return '';
     if (p.type === 'schlag') {
-      const buttons = [...RANKS, 'Weli']
-        .map((r) => `<button class="action-btn" data-schlag="${r}">${r === 'Weli' ? 'Weli' : RANK_LABEL[r]}</button>`)
+      const buttons = RANKS
+        .map((r) => `<button class="action-btn" data-schlag="${r}">${RANK_LABEL[r]}</button>`)
         .join('');
       return `<div class="action-panel"><div class="prompt">Sitz ${p.seat + 1}: Schlag ansagen</div><div class="action-buttons">${buttons}</div></div>`;
     }
@@ -230,7 +230,7 @@ export class Ui {
       const buttons = Object.keys(SUIT_SYMBOL)
         .map((suit) => `<button class="action-btn" data-trumpf="${suit}">${suitLabel(suit)} ${SUIT_SYMBOL[suit]}</button>`)
         .join('');
-      return `<div class="action-panel"><div class="prompt">Sitz ${p.seat + 1}: Trumpf ansagen (Schlag ist ${p.schlagRank === 'Weli' ? 'Weli' : RANK_LABEL[p.schlagRank]})</div><div class="action-buttons">${buttons}</div></div>`;
+      return `<div class="action-panel"><div class="prompt">Sitz ${p.seat + 1}: Trumpf ansagen (Schlag ist ${RANK_LABEL[p.schlagRank]})</div><div class="action-buttons">${buttons}</div></div>`;
     }
     if (p.type === 'raiseOrPass') {
       return `<div class="action-panel"><div class="prompt">Sitz ${p.seat + 1}: Willst du fragen "Geht ihr?" (aktuell ${p.currentValue} Punkte)</div>

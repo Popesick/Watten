@@ -24,28 +24,28 @@ gute Einsteiger-Variante. Blindwatten (verdeckte Ansage) kann später als
 Erweiterung ergänzt werden.
 
 Umgesetzte Grundregeln (Hausregel-Variante):
-- 33 Karten (4 Farben × 7–Ass + Weli). Farbnamen wie am Tisch gebräuchlich:
-  Eichel, **Gras** (intern "Laub"), Herz, **Schelln** (intern "Schell").
-- Rangordnung: Weli-als-Schlag (Sonderfall) → **Kritisch** → Guete →
-  **Haube** → weitere Schläge → Trumpf → Farbkarten.
-  - Die **Haube** ist die Trumpf-Karte im Rang des angesagten Schlags
-    (anderswo auch "Rechte" genannt).
-  - **Kritische Karten** sind fix und immer stark, unabhängig von Trumpf/
-    Schlag: Eichel 7 < Schelln 7 < Herz König.
+- 32 Karten (4 Farben × 7 bis Sau, kein Weli/keine Sonderkarte). Farbnamen wie
+  am Tisch gebräuchlich: Eichel, **Gras** (intern "Laub"), Herz, **Schelln**
+  (intern "Schell").
+- Rangordnung: **Kritisch** → Guete → **der Haube** → weitere Schläge →
+  Trumpf → Farbkarten.
+  - **Der Haube** (bayrisch, männlich) ist die Trumpf-Karte im Rang des
+    angesagten Schlags (anderswo auch "Rechte" genannt).
+  - **Die drei Kritischen** sind fix und immer stark, unabhängig von
+    Trumpf/Schlag, mit eigenen Namen: **Soache** (Eichel 7, sticht alles
+    außer den nächsten zwei), **Welln** (Schelln 7, sticht alles außer dem
+    letzten), **Maxe** (Herz König, sticht alles). Hat ein Spieler alle drei
+    auf der Hand, ist das "a Maschin" – Meldung direkt nach dem Geben.
 - **Kein genereller Farbzwang** – man darf grundsätzlich jede Karte spielen.
   Einzige Ausnahme: **"Trumpf oder Kritisch"** – eröffnet der Schlagansager
-  den allerersten Stich der Runde mit der Haube, müssen ab da alle in diesem
+  den allerersten Stich der Runde mit dem Haube, müssen ab da alle in diesem
   Stich Trumpf zugeben oder mit einem Kritischen stechen.
 - Ein Stich, der rein durch höheren Rang innerhalb einer normalen (nicht
   Trumpf-)Farbe gewonnen wird, heißt **"Dant"**.
-- Bieten heißt **"Geht ihr?"**: die Gegenseite kann statt zu passen laut
-  ansagen ("Drei!", "Vier!", …), was den Einsatz automatisch erhöht; die
-  Antwort ist "Nein, wir gehen nicht!" (hält, Einsatz steigt) oder "Ja, wir
-  gehen." (Runde vorbei, aktueller Einsatz geht an den Frager). Das kann sich
-  beliebig hochschaukeln, bis eine Seite nicht mehr fragt.
 - "Es gehen die Vier" (gestrichen-Regel) im klassischen 2-Team-Fall (2er/4er).
 - Rundenwertung (3 Stiche gewinnen die Runde) und Spielwertung bis zur
-  Zielpunktzahl (11/15/18).
+  Zielpunktzahl (11/15/18). Jede normale Runde wird fest um 2 Punkte
+  gespielt (siehe "Bieten" unten).
 - Varianten für 2, 3 und 4 Spieler (Kartenzahl, Teams) gemäß
   watten-suedtirol.com, angepasst um obige Hausregeln.
 - Nach jedem Stich pausiert das Spiel (sofern ein Mensch mitspielt) mit
@@ -55,9 +55,11 @@ Umgesetzte Grundregeln (Hausregel-Variante):
 
 ## Bewusste Vereinfachungen (Stand: erste Version)
 
+- **Bieten ("Geht ihr?") ist vorerst deaktiviert** – funktionierte in der
+  ersten Umsetzung noch nicht rund, jede normale Runde läuft fest um 2
+  Punkte. Der Code dafür (`WattenGame.biddingPhase`) bleibt im Projekt,
+  wird aber aktuell nicht aufgerufen; soll später überarbeitet zurückkommen.
 - Kein Schlagtausch, kein "Schöner", kein "nichts ansagen".
-- Beim Bieten entscheidet je Team ein Sitzplatz stellvertretend (in der
-  Praxis würden sich Partner absprechen).
 - "Es gehen die Vier" nur für 2 Teams (2er-/4er-Watten), nicht für die
   freie 3er-Variante.
 - 3er-Watten: Variante mit 7 Karten/Spieler, alle gegeneinander.

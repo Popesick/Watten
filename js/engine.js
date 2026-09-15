@@ -11,7 +11,7 @@
 // - "Es gehen die Vier" wird nur im klassischen 2-Team-Fall (2er/4er) angewendet.
 
 import { createDeck, shuffle, suitLabel, cardLabel } from './cards.js';
-import { legalPlays, trickWinner, cardsEqual, compareInTrick, cardStrength, haubeCard, describeWin } from './rules.js';
+import { legalPlays, trickWinner, cardsEqual, compareInTrick, cardStrength, haubeCard, describeWin, hasMaschin } from './rules.js';
 import { VARIANTS, teamOfSeat } from './variants.js';
 import { SIGNALS, SIGNAL_TEXT, numberWord } from './chat.js';
 
@@ -119,6 +119,12 @@ export class WattenGame {
     this.stitches = this.variant.teams.map(() => 0);
     this.emit();
 
+    for (let seat = 0; seat < this.n; seat++) {
+      if (hasMaschin(this.hands[seat])) {
+        this.log(`Sitz ${seat + 1}: du hast a Maschin!`);
+      }
+    }
+
     const schlagSeat = (this.dealerIndex + 1) % this.n;
     const trumpSeat = this.dealerIndex;
 
@@ -132,7 +138,7 @@ export class WattenGame {
     const trumpSuit = await this.players[trumpSeat].chooseTrumpf(this.hands[trumpSeat], schlagRank);
     this.announcement = { trumpSuit, schlagRank };
     this.log(
-      `Sitz ${trumpSeat + 1} sagt Trumpf an: ${suitLabel(trumpSuit)}, Schlag: ${schlagRank === 'Weli' ? 'Weli' : schlagRank}.`
+      `Sitz ${trumpSeat + 1} sagt Trumpf an: ${suitLabel(trumpSuit)}, Schlag: ${schlagRank}.`
     );
     this.emit();
 
@@ -159,10 +165,9 @@ export class WattenGame {
         this.log(`${this.variant.teamNames[forcedGestrichenTeam]} hält bei "es gehen die Vier" – es wird um 4 Punkte gespielt.`);
       }
     } else {
-      this.phase = 'bidding';
-      this.emit();
-      roundResult = await this.biddingPhase(schlagSeat, activeTeams);
-      if (roundResult) activeTeams = roundResult.activeTeams || activeTeams;
+      // "Geht ihr?"-Bieten ist vorerst deaktiviert (noch nicht rund) - jede
+      // normale Runde wird fest um 2 Punkte gespielt.
+      this.roundValue = 2;
     }
 
     if (roundResult && roundResult.fold) {
@@ -178,6 +183,9 @@ export class WattenGame {
     this.dealerIndex = (this.dealerIndex + 1) % this.n;
   }
 
+  // Aktuell nicht aufgerufen (siehe playRound) - "Geht ihr?"-Bieten ist
+  // vorerst deaktiviert, bis das Verhalten rund läuft. Bleibt hier stehen,
+  // um es später wieder einzuhängen.
   async biddingPhase(schlagSeat, allTeams) {
     let value = 2;
     let activeTeams = allTeams.slice();
@@ -354,13 +362,13 @@ export class WattenGame {
         trickPlays.push({ seat, card });
         if (!ledCard) ledCard = card;
 
-        // Eröffnet der Schlagansager den allerersten Stich der Runde mit der
+        // Eröffnet der Schlagansager den allerersten Stich der Runde mit dem
         // Haube, gilt ab jetzt "Trumpf oder Kritisch" für alle Folgenden.
         if (wasLeader && trickNumber === 1 && seat === schlagSeat) {
           const haube = haubeCard(this.announcement);
           if (haube && cardsEqual(card, haube)) {
             trumpfOderKritisch = true;
-            this.log(`Sitz ${seat + 1} eröffnet mit der Haube – Trumpf oder Kritisch!`);
+            this.log(`Sitz ${seat + 1} eröffnet mit dem Haube – Trumpf oder Kritisch!`);
           }
         }
 

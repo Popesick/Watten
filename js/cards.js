@@ -1,12 +1,11 @@
-// Kartendeck und Grundtypen für Watten (Südtiroler Blatt, 33 Karten)
+// Kartendeck und Grundtypen für Watten (traditionelles Blatt, 32 Karten)
 
 export const SUITS = ['Eichel', 'Laub', 'Herz', 'Schell'];
 export const RANKS = ['7', '8', '9', '10', 'U', 'O', 'K', 'A'];
 
 export const RANK_LABEL = {
   '7': '7', '8': '8', '9': '9', '10': '10',
-  'U': 'Unter', 'O': 'Ober', 'K': 'König', 'A': 'Ass',
-  'Weli': 'Weli',
+  'U': 'Unter', 'O': 'Ober', 'K': 'König', 'A': 'Sau',
 };
 
 export const SUIT_SYMBOL = {
@@ -37,10 +36,6 @@ export function cardsEqual(a, b) {
   return a.suit === b.suit && a.rank === b.rank;
 }
 
-export function isWeli(card) {
-  return card.rank === 'Weli';
-}
-
 export function rankIndex(rank) {
   return RANKS.indexOf(rank);
 }
@@ -58,7 +53,6 @@ export function createDeck() {
       deck.push({ suit, rank });
     }
   }
-  deck.push({ suit: 'Schell', rank: 'Weli' });
   return deck;
 }
 
@@ -72,6 +66,5 @@ export function shuffle(deck) {
 }
 
 export function cardLabel(card) {
-  if (isWeli(card)) return 'Weli';
   return `${RANK_LABEL[card.rank]} ${suitLabel(card.suit)}`.trim();
 }
