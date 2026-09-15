@@ -27,8 +27,9 @@ Umgesetzte Grundregeln (Hausregel-Variante):
 - 32 Karten (4 Farben × 7 bis Sau, kein Weli/keine Sonderkarte). Farbnamen wie
   am Tisch gebräuchlich: Eichel, **Gras** (intern "Laub"), Herz, **Schelln**
   (intern "Schell"). Ass heißt **Sau**.
-- Rangordnung: **Kritisch** → Guete → **der Haube** → weitere Schläge →
-  Trumpf → Farbkarten.
+- Rangordnung: **Kritisch** → **der Haube** → weitere Schläge → Trumpf →
+  Farbkarten. (Kein "Guete" - das steht zwar so auf watten-suedtirol.com,
+  gehört aber nicht zu diesen Hausregeln.)
   - **Der Haube** (bayrisch, männlich) ist die Trumpf-Karte im Rang des
     angesagten Schlags (anderswo auch "Rechte" genannt).
   - **Die drei Kritischen** sind fix und immer stark, unabhängig von
@@ -99,6 +100,8 @@ höchstens einmal pro Team und Stich.
   Punktestand erkennbar (Team A/B/C je eigene Farbe).
 - Farben sind eingefärbt (Herz rot, Eichel braun, Gras grün, Schelln gold) -
   bei der Trumpfansage, auf den Karten und im Trumpf-Banner.
+- Ein ausgespielter Kritischer (Soache/Welln/Maxe) bekommt im laufenden
+  Stich einen roten Rahmen, damit er sofort auffällt.
 
 ## Sound & Musik
 
@@ -116,8 +119,8 @@ höchstens einmal pro Team und Stich.
 ## Eigene Hand: Sortierung & Umsortieren
 
 Die eigene Hand wird automatisch absteigend nach Stärke sortiert - sobald
-Trumpf/Schlag bekannt sind nach Maxe/Welln/Soache (Kritische) → Guete →
-Haube → weitere Schläge → Trumpf → Farbkarten, jeweils Sau bis Sieben,
+Trumpf/Schlag bekannt sind nach Maxe/Welln/Soache (Kritische) → Haube →
+weitere Schläge → Trumpf → Farbkarten, jeweils Sau bis Sieben,
 gleichrangige Farben in fester Reihenfolge. Einzelne Karten lassen sich
 per Drag & Drop frei umsortieren; das bleibt für den Rest der Runde
 erhalten (nur gespielte Karten fallen raus), bis das nächste Blatt kommt.

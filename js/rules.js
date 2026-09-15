@@ -1,15 +1,14 @@
-// Kernregeln: Rangordnung der Karten (Kritisch/Guete/Haube/weitere Schläge/
+// Kernregeln: Rangordnung der Karten (Kritisch/Haube/weitere Schläge/
 // Trumpf/Farbkarten), Kartenvergleich und Legalität für "Offenes Watten"
-// (mit den kritischen Karten aus "Kritisch Watten"). Kein genereller
+// (Hausregeln - kein "Guete", siehe Diskussion im Projekt). Kein genereller
 // Farbzwang - nur beim Sonderfall "Trumpf oder Kritisch" muss zugegeben
 // bzw. mit einem Kritischen gestochen werden.
 
-import { SUIT_PRIORITY, rankIndex, nextRank, cardsEqual } from './cards.js';
+import { SUIT_PRIORITY, rankIndex, cardsEqual } from './cards.js';
 
 // Kategorien, höher = stärker
 export const CAT = {
-  KRITISCH: 6, // fixe kritische Karten, immer über Guete/Haube
-  GUETE: 5,
+  KRITISCH: 5, // fixe kritische Karten, immer über der Haube
   RECHTE: 4, // "Haube": Trumpf-Karte im Rang des Schlags
   WEITERER_SCHLAG: 3,
   TRUMPF: 2,
@@ -46,34 +45,20 @@ export function hasMaschin(hand) {
 
 // announcement: { trumpSuit: 'Eichel'|'Laub'|'Herz'|'Schell', schlagRank: '7'..'A' }
 
-export function guessGueteCard(announcement) {
-  const { trumpSuit, schlagRank } = announcement;
-  if (schlagRank === 'A') return { suit: trumpSuit, rank: '7' };
-  const nr = nextRank(schlagRank);
-  if (!nr) return null;
-  return { suit: trumpSuit, rank: nr };
-}
-
 /** Der "Haube": die Trumpf-Karte im Rang des angesagten Schlags. */
 export function haubeCard(announcement) {
   return { suit: announcement.trumpSuit, rank: announcement.schlagRank };
 }
 
-// Rückwärtskompatibler Alias.
-export const rechteCard = haubeCard;
-
 /** Liefert {cat, val, suitPr} zur Stärke einer Karte unter der aktuellen Ansage. */
 export function cardStrength(card, announcement) {
   const { trumpSuit, schlagRank } = announcement;
 
-  // Kritische Karten stehen immer über Guete und Haube.
+  // Kritische Karten stehen immer über der Haube.
   const ki = kritischIndex(card);
   if (ki >= 0) return { cat: CAT.KRITISCH, val: ki, suitPr: 0 };
 
-  const guete = guessGueteCard(announcement);
   const haube = haubeCard(announcement);
-
-  if (guete && cardsEqual(card, guete)) return { cat: CAT.GUETE, val: 0, suitPr: 0 };
   if (haube && cardsEqual(card, haube)) return { cat: CAT.RECHTE, val: 0, suitPr: 0 };
 
   if (card.rank === schlagRank && card.suit !== trumpSuit) {
@@ -125,8 +110,8 @@ export { cardsEqual };
  * Stärke einer Karte IM KONTEXT eines Stichs (angespielte Farbe zählt):
  * Eine reine Farbkarte (Kategorie FARBE), die nicht die angespielte Farbe
  * bedient, kann den Stich nie gewinnen - unabhängig von ihrem Rang. Trumpf,
- * Haube/Guete/Kritisch/weitere Schläge und farbgleiche Farbkarten werden
- * normal verglichen.
+ * Haube/Kritisch/weitere Schläge und farbgleiche Farbkarten werden normal
+ * verglichen.
  */
 function trickCardRank(card, ledSuit, announcement) {
   const s = cardStrength(card, announcement);
@@ -165,8 +150,6 @@ export function describeWin(winningCard, announcement) {
       const name = kritischName(winningCard);
       return name ? `mit dem ${name}` : 'mit einem Kritischen';
     }
-    case CAT.GUETE:
-      return 'mit dem Gueten';
     case CAT.RECHTE:
       return 'mit dem Haube';
     case CAT.WEITERER_SCHLAG:

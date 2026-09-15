@@ -275,6 +275,11 @@ h1, h2, h3 { margin: 0 0 8px; }
 .trick-card-wrap { display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .trick-card-wrap .who { font-size: 0.75rem; color: var(--muted); }
 
+.card.kritisch-played {
+  border: 3px solid #c62828;
+  box-shadow: 0 0 8px rgba(198, 40, 40, 0.8);
+}
+
 .action-panel {
   background: var(--panel);
   border: 2px solid var(--gold);

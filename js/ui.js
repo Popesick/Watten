@@ -2,7 +2,7 @@
 // Die Engine ruft diese Methoden auf, ohne zu wissen, dass ein Mensch dahintersteckt.
 
 import { SUIT_SYMBOL, SUIT_COLOR, SUIT_PRIORITY, RANKS, RANK_LABEL, cardId, suitLabel, rankIndex } from './cards.js';
-import { legalPlays, sortByStrength } from './rules.js';
+import { legalPlays, sortByStrength, isKritisch } from './rules.js';
 import { ASK_TEXT, GEHN_TEXT } from './chat.js';
 
 const TEAM_COLOR = ['#d4af37', '#6fa8dc', '#8bc34a', '#e07a5f'];
@@ -113,7 +113,7 @@ export class Ui {
 
   /**
    * Liefert die Hand eines Sitzes in Anzeige-Reihenfolge: automatisch absteigend
-   * sortiert (Maxe/Welln/Soache > Guete > Haube > Schlag > Trumpf > Farbe, je
+   * sortiert (Maxe/Welln/Soache > Haube > Schlag > Trumpf > Farbe, je
    * Sau bis Sieben), neu berechnet bei frischem Blatt oder sobald Trumpf/Schlag
    * bekannt wird - danach bleibt eine manuelle Umsortierung (Drag & Drop) erhalten.
    */
@@ -155,11 +155,12 @@ export class Ui {
     this.render();
   }
 
-  cardHtml(card, { faceUp = true, clickable = false, disabled = false, draggable = false } = {}) {
+  cardHtml(card, { faceUp = true, clickable = false, disabled = false, draggable = false, highlightKritisch = false } = {}) {
     if (!faceUp) {
       return `<div class="card back"></div>`;
     }
-    const cls = `card${clickable && !disabled ? ' clickable' : ''}${disabled ? ' disabled' : ''}`;
+    const kritisch = highlightKritisch && isKritisch(card);
+    const cls = `card${clickable && !disabled ? ' clickable' : ''}${disabled ? ' disabled' : ''}${kritisch ? ' kritisch-played' : ''}`;
     const color = SUIT_COLOR[card.suit];
     const label = RANK_LABEL[card.rank];
     const symbol = SUIT_SYMBOL[card.suit];
@@ -200,7 +201,7 @@ export class Ui {
 
     const trickHtml = s.currentTrick.plays.length
       ? s.currentTrick.plays
-          .map((p) => `<div class="trick-card-wrap"><div class="who">Sitz ${p.seat + 1}</div>${this.cardHtml(p.card)}</div>`)
+          .map((p) => `<div class="trick-card-wrap"><div class="who">Sitz ${p.seat + 1}</div>${this.cardHtml(p.card, { highlightKritisch: true })}</div>`)
           .join('')
       : `<div style="color:var(--muted)">Noch keine Karte gespielt</div>`;
 

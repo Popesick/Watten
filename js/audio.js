@@ -94,9 +94,12 @@ export class AudioManager {
     const el = this.sfxEls[name];
     if (!el || !this.unlocked) return;
     try {
-      el.currentTime = 0;
-      el.volume = this.volume;
-      el.play().catch(() => {});
+      // Eigene Instanz pro Aufruf: der Deal-Sound ist länger als der Abstand
+      // zwischen zwei Karten, ein wiederverwendetes <audio> würde sich beim
+      // schnellen Austeilen ständig selbst unterbrechen (nie hörbar werden).
+      const instance = el.cloneNode(true);
+      instance.volume = this.volume;
+      instance.play().catch(() => {});
     } catch {
       // Absichtlich still - ein fehlender/blockierter Soundeffekt darf das Spiel nie stoppen.
     }

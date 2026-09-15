@@ -40,12 +40,6 @@ export function rankIndex(rank) {
   return RANKS.indexOf(rank);
 }
 
-export function nextRank(rank) {
-  const i = rankIndex(rank);
-  if (i < 0 || i >= RANKS.length - 1) return null;
-  return RANKS[i + 1];
-}
-
 export function createDeck() {
   const deck = [];
   for (const suit of SUITS) {

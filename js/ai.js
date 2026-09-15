@@ -8,7 +8,7 @@ import { cardStrength, compareInTrick, sortByStrength, legalPlays } from './rule
 function cardWeight(card, announcement) {
   const s = cardStrength(card, announcement);
   // Grobe, monoton steigende Gewichtung je Kategorie, für Handstärke-Schätzung.
-  const catBase = { 1: 0, 2: 8, 3: 16, 4: 20, 5: 22, 6: 24 }[s.cat] || 0;
+  const catBase = { 1: 0, 2: 8, 3: 16, 4: 20, 5: 24 }[s.cat] || 0;
   return catBase + Math.max(0, s.val);
 }
 
@@ -42,7 +42,7 @@ export function chooseTrumpf(hand, schlagRank) {
     for (const card of hand) {
       const s = cardStrength(card, ann);
       score += cardWeight(card, ann);
-      if (s.cat >= 4) score += 15; // Haube/Guete/Kritisch im eigenen Blatt ist viel wert
+      if (s.cat >= 4) score += 15; // Haube/Kritisch im eigenen Blatt ist viel wert
     }
     if (score > bestScore) {
       bestScore = score;
