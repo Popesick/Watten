@@ -161,8 +161,13 @@ export class Ui {
     }
     const kritisch = highlightKritisch && isKritisch(card);
     const cls = `card${clickable && !disabled ? ' clickable' : ''}${disabled ? ' disabled' : ''}${kritisch ? ' kritisch-played' : ''}`;
-    const img = `assets/img/cards/${card.suit}-${card.rank}.png`;
-    return `<div class="${cls}" style="background-image:url('${img}')" data-suit="${card.suit}" data-rank="${card.rank}"${draggable ? ' draggable="true"' : ''}></div>`;
+    const color = SUIT_COLOR[card.suit];
+    const label = RANK_LABEL[card.rank];
+    const symbol = SUIT_SYMBOL[card.suit];
+    return `<div class="${cls}" style="color:${color}" data-suit="${card.suit}" data-rank="${card.rank}"${draggable ? ' draggable="true"' : ''}>
+      <div class="rank">${label}</div>
+      <div class="suit-symbol">${symbol}</div>
+    </div>`;
   }
 
   render() {
