@@ -93,13 +93,16 @@ höchstens einmal pro Team und Stich.
   sieben Charaktere als Avatar zugewiesen werden, oder "🎲 Zufällig"
   bleiben; unbesetzte Sitze werden beim Spielstart aus den noch nicht
   gewählten Charakteren zufällig aufgefüllt.
-- Die Kartenrückseiten (KI) bzw. die eigenen Karten (Mensch) werden per CSS
-  über der Charaktergrafik positioniert (kein pixelgenaues "in die Hand
-  legen", aber optisch stimmig).
+- Die Spielkarten selbst sind echte Kartengrafiken (Bayerisches Blatt,
+  Schafkopf-Standardblatt), einzeln aus einer Übersichtsgrafik
+  freigestellt und unter `assets/img/cards/` abgelegt (32 Karten, 7 bis
+  Sau, ohne die 6er). Kartenrückseiten (KI) bzw. die eigenen Karten
+  (Mensch) werden per CSS über der Charaktergrafik positioniert (kein
+  pixelgenaues "in die Hand legen", aber optisch stimmig).
 - Team-Zugehörigkeit ist über einen farbigen Punkt bei Sitzname und
   Punktestand erkennbar (Team A/B/C je eigene Farbe).
 - Farben sind eingefärbt (Herz rot, Eichel braun, Gras grün, Schelln gold) -
-  bei der Trumpfansage, auf den Karten und im Trumpf-Banner.
+  bei der Trumpfansage und im Trumpf-Banner.
 - Ein ausgespielter Kritischer (Soache/Welln/Maxe) bekommt im laufenden
   Stich einen roten Rahmen, damit er sofort auffällt.
 - Hat der eigene Partner im laufenden Stich gerade die höchste Karte, wird
@@ -163,6 +166,7 @@ Partners im Stich blau markiert - siehe Grafik-Abschnitt oben.
 - `js/ui.js` / `js/main.js` – Rendering, Avatar-/Musikauswahl, Hand-
   Sortierung/Drag&Drop, Einstiegspunkt.
 - `assets/img/` – Hintergrund- und Charaktergrafiken.
+- `assets/img/cards/` – Einzelne Kartengrafiken (Schafkopf-Standardblatt).
 - `assets/audio/` – Musikstücke und Soundeffekte.
 
 ## Mögliche nächste Schritte

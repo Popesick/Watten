@@ -236,21 +236,16 @@ h1, h2, h3 { margin: 0 0 8px; }
   width: 56px;
   height: 84px;
   border-radius: 8px;
-  background: #fdfaf0;
-  color: #222;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
+  background-color: #fdfaf0;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   border: 1px solid #999;
   box-shadow: 1px 2px 4px rgba(0,0,0,0.4);
   cursor: default;
   user-select: none;
   position: relative;
 }
-.card .rank { font-size: 1.1rem; }
-.card .suit-symbol { font-size: 1.4rem; }
 .card.clickable { cursor: pointer; }
 .card.clickable:hover { transform: translateY(-6px); transition: transform 0.1s; }
 .card[draggable="true"] { cursor: grab; }
