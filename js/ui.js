@@ -344,7 +344,7 @@ export class Ui {
         ? `<div class="prompt" style="margin-top:6px">Partner: "${ASK_TEXT[ctx.receivedAnswer]}"</div>`
         : '';
       const partnerNote = ctx.partnerAlreadyPlayed
-        ? ' Dein Mitspieler hat schon den Stich gemacht!'
+        ? ' Dein Mitspieler hat in diesem Stich schon gespielt.'
         : '';
       return `<div class="action-panel"><div class="prompt">Sitz ${p.seat + 1}: wähle eine Karte.${partnerNote}</div>${infoLine}${
         metaButtons.length ? `<div class="action-buttons">${metaButtons.join('')}</div>` : ''
