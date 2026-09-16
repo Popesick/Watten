@@ -25,6 +25,10 @@ export class WattenGame {
     this.ui = ui;
     this.seatTypes = seatTypes; // ['human'|'ai', ...] Länge n
     this.scores = this.variant.teams.map(() => 0);
+    // Für "dynamicTeams" (3er-Watten: Alleinspieler gg. wechselndes Zweier-Team)
+    // wird roundTeams jede Runde neu berechnet; scores bleibt trotzdem pro Sitz
+    // dauerhaft (variant.teams ist dort bereits je Sitz ein Einzel-"Team").
+    this.roundTeams = this.variant.teams;
     this.dealerIndex = 0;
     this.roundNumber = 0;
     this.hands = [];
@@ -48,8 +52,30 @@ export class WattenGame {
     this.ui.onLog(msg);
   }
 
-  captainOf(teamIdx) {
-    return this.variant.teams[teamIdx][0];
+  captainOf(roundTeamIdx) {
+    return this.roundTeams[roundTeamIdx][0];
+  }
+
+  /** Menschenlesbares Label für einen Eintrag in this.roundTeams (siehe dort). */
+  roundTeamLabel(roundTeamIdx) {
+    if (!this.variant.dynamicTeams) return this.variant.teamNames[roundTeamIdx];
+    const seats = this.roundTeams[roundTeamIdx];
+    if (seats.length === 1) return `Sitz ${seats[0] + 1} (Alleinspieler)`;
+    return seats.map((s) => `Sitz ${s + 1}`).join(' + ');
+  }
+
+  /**
+   * Punkte gutschreiben. this.scores ist immer pro festem Team aus
+   * variant.teams indiziert (bei dynamicTeams ist das pro Sitz, da dort
+   * jedes feste "Team" nur einen Sitz enthält) - roundTeamIdx indiziert
+   * dagegen in this.roundTeams (die aktuelle Runden-Zuordnung).
+   */
+  awardPoints(roundTeamIdx, points) {
+    if (this.variant.dynamicTeams) {
+      for (const seat of this.roundTeams[roundTeamIdx]) this.scores[seat] += points;
+    } else {
+      this.scores[roundTeamIdx] += points;
+    }
   }
 
   emit() {
@@ -59,6 +85,7 @@ export class WattenGame {
   getPublicState() {
     return {
       variant: this.variant,
+      roundTeams: this.roundTeams,
       n: this.n,
       dealerIndex: this.dealerIndex,
       scores: this.scores,
@@ -138,10 +165,24 @@ export class WattenGame {
 
   async playRound() {
     this.roundNumber++;
+
+    // Schlag-Ansager ("links vom Geber") steht schon vor dem Geben fest -
+    // bei dynamicTeams (3er-Watten) ist das zugleich der Alleinspieler
+    // dieser Runde und bestimmt die Runden-Teams (roundTeams).
+    const schlagSeat = (this.dealerIndex + 1) % this.n;
+    const trumpSeat = this.variant.dynamicTeams ? schlagSeat : this.dealerIndex;
+    if (this.variant.dynamicTeams) {
+      const others = [];
+      for (let s = 0; s < this.n; s++) if (s !== schlagSeat) others.push(s);
+      this.roundTeams = [[schlagSeat], others];
+    } else {
+      this.roundTeams = this.variant.teams;
+    }
+
     this.phase = 'dealing';
     this.announcement = null;
     this.currentTrick = { ledCard: null, plays: [] };
-    this.stitches = this.variant.teams.map(() => 0);
+    this.stitches = this.roundTeams.map(() => 0);
     this.roundValue = 2;
     this.hands = Array.from({ length: this.n }, () => []);
     this.emit();
@@ -154,10 +195,10 @@ export class WattenGame {
       }
     }
 
-    const schlagSeat = (this.dealerIndex + 1) % this.n;
-    const trumpSeat = this.dealerIndex;
-
     this.log(`--- Runde ${this.roundNumber}: ${this.variant.teamNames.map((n, i) => `${n}: ${this.scores[i]}`).join(' | ')} ---`);
+    if (this.variant.dynamicTeams) {
+      this.log(`Sitz ${schlagSeat + 1} spielt allein gegen ${this.roundTeamLabel(1)}.`);
+    }
 
     this.phase = 'announcing';
     const schlagRank = await this.players[schlagSeat].chooseSchlag(this.hands[schlagSeat]);
@@ -187,7 +228,7 @@ export class WattenGame {
         this.log(
           `${this.variant.teamNames[forcedGestrichenTeam]} ist gestrichen und geht bei "es gehen die Vier" – ${this.variant.teamNames[otherTeam]} erhält 2 Punkte.`
         );
-        this.scores[otherTeam] += 2;
+        this.awardPoints(otherTeam, 2);
         this.log(`Runde beendet ohne Stichspiel. ${this.variant.teamNames[otherTeam]} erhält 2 Punkte.`);
         this.dealerIndex = (this.dealerIndex + 1) % this.n;
         this.emit();
@@ -198,7 +239,7 @@ export class WattenGame {
       this.gehnUsedThisRound = false;
     }
 
-    const activeTeams = this.variant.teams.map((_, i) => i);
+    const activeTeams = this.roundTeams.map((_, i) => i);
     await this.playTricks(schlagSeat, activeTeams);
     this.dealerIndex = (this.dealerIndex + 1) % this.n;
   }
@@ -211,8 +252,8 @@ export class WattenGame {
    * erhöhtem roundValue).
    */
   async runGehnNegotiation(challengerSeat) {
-    const challengerTeam = teamOfSeat(this.variant, challengerSeat);
-    const opponentTeams = this.variant.teams.map((_, i) => i).filter((t) => t !== challengerTeam);
+    const challengerTeam = teamOfSeat(this.roundTeams, challengerSeat);
+    const opponentTeams = this.roundTeams.map((_, i) => i).filter((t) => t !== challengerTeam);
     this.log(`Sitz ${challengerSeat + 1}: "${GEHN_TEXT.QUESTION}"`);
     this.emit();
 
@@ -225,7 +266,7 @@ export class WattenGame {
         hand: this.hands[oppCaptain],
         announcement: this.announcement,
       });
-      this.log(`${this.variant.teamNames[oppTeam]}: "${GEHN_TEXT[resp]}"`);
+      this.log(`${this.roundTeamLabel(oppTeam)}: "${GEHN_TEXT[resp]}"`);
       this.emit();
       if (resp !== 'JA') {
         deciding = { oppTeam, resp };
@@ -235,8 +276,8 @@ export class WattenGame {
 
     if (!deciding) {
       // Alle Gegner sind gegangen.
-      this.scores[challengerTeam] += 2;
-      this.log(`${this.variant.teamNames[challengerTeam]} erhält 2 Punkte. Runde beendet.`);
+      this.awardPoints(challengerTeam, 2);
+      this.log(`${this.roundTeamLabel(challengerTeam)} erhält 2 Punkte. Runde beendet.`);
       this.emit();
       return true;
     }
@@ -253,15 +294,15 @@ export class WattenGame {
       hand: this.hands[challengerSeat],
       announcement: this.announcement,
     });
-    this.log(`${this.variant.teamNames[challengerTeam]}: "${GEHN_TEXT[resp2]}"`);
+    this.log(`${this.roundTeamLabel(challengerTeam)}: "${GEHN_TEXT[resp2]}"`);
     if (resp2 === 'WEITER') {
       this.roundValue = 4;
       this.log(`Es wird um 4 Punkte weitergespielt.`);
       this.emit();
       return false;
     }
-    this.scores[deciding.oppTeam] += 2;
-    this.log(`${this.variant.teamNames[deciding.oppTeam]} erhält 2 Punkte. Runde beendet.`);
+    this.awardPoints(deciding.oppTeam, 2);
+    this.log(`${this.roundTeamLabel(deciding.oppTeam)} erhält 2 Punkte. Runde beendet.`);
     this.emit();
     return true;
   }
@@ -275,7 +316,7 @@ export class WattenGame {
   async playTricks(schlagSeat, activeTeams) {
     this.phase = 'playing';
     const activeSeats = activeTeams
-      .flatMap((t) => this.variant.teams[t])
+      .flatMap((t) => this.roundTeams[t])
       .sort((a, b) => a - b);
 
     let leaderSeat = activeSeats.includes(schlagSeat)
@@ -295,13 +336,13 @@ export class WattenGame {
 
       for (const seat of order) {
         const hand = this.hands[seat];
-        const teamOfCurrent = teamOfSeat(this.variant, seat);
+        const teamOfCurrent = teamOfSeat(this.roundTeams, seat);
         const currentBestPlay = trickPlays.length
           ? trickPlays.reduce((best, p) =>
               compareInTrick(p.card, best.card, ledCard.suit, this.announcement) > 0 ? p : best
             )
           : null;
-        const partnerSeats = this.variant.teams[teamOfCurrent].filter((s) => s !== seat);
+        const partnerSeats = this.roundTeams[teamOfCurrent].filter((s) => s !== seat);
         const partnerIsWinning = currentBestPlay ? partnerSeats.includes(currentBestPlay.seat) : false;
         const isDecisiveTrick = this.stitches.some((s) => s === 2);
         const hasPartner = partnerSeats.length === 1;
@@ -387,11 +428,11 @@ export class WattenGame {
       }
 
       const winnerSeat = trickWinner(trickPlays, this.announcement);
-      const winnerTeam = teamOfSeat(this.variant, winnerSeat);
+      const winnerTeam = teamOfSeat(this.roundTeams, winnerSeat);
       const winningCard = trickPlays.find((p) => p.seat === winnerSeat).card;
       const reasonText = describeWin(winningCard, this.announcement);
       this.stitches[winnerTeam]++;
-      this.log(`Stich geht an Sitz ${winnerSeat + 1} (${this.variant.teamNames[winnerTeam]}), ${reasonText}. Stand: ${this.stitches.join(':')}`);
+      this.log(`Stich geht an Sitz ${winnerSeat + 1} (${this.roundTeamLabel(winnerTeam)}), ${reasonText}. Stand: ${this.stitches.join(':')}`);
       this.emit();
 
       if (this.seatTypes.includes('human') && typeof this.ui.confirmTrick === 'function') {
@@ -402,8 +443,8 @@ export class WattenGame {
     }
 
     const roundWinnerTeam = this.stitches.findIndex((s) => s >= 3);
-    this.scores[roundWinnerTeam] += this.roundValue;
-    this.log(`${this.variant.teamNames[roundWinnerTeam]} gewinnt die Runde und erhält ${this.roundValue} Punkte.`);
+    this.awardPoints(roundWinnerTeam, this.roundValue);
+    this.log(`${this.roundTeamLabel(roundWinnerTeam)} gewinnt die Runde und erhält ${this.roundValue} Punkte.`);
     this.emit();
   }
 }

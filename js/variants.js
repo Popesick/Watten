@@ -12,11 +12,16 @@ export const VARIANTS = {
   },
   3: {
     players: 3,
-    cardsPerHand: 7,
-    // Alle gegeneinander (Variante 1: 7 Karten, jeder für sich).
+    cardsPerHand: 5,
+    // Jeder Sitz hat einen eigenen, dauerhaften Punktestand (teams bleibt
+    // deshalb je Sitz ein Einzel-"Team") - wer mit wem gegen wen spielt,
+    // wechselt aber jede Runde: der Spieler links vom Geber sagt allein
+    // Schlag und Trumpf an, die anderen beiden bilden für diese Runde ein
+    // Team gegen ihn (dynamicTeams, siehe engine.js: roundTeams).
     teams: [[0], [1], [2]],
     teamNames: ['Spieler 1', 'Spieler 2', 'Spieler 3'],
-    forcedFourApplies: false, // vereinfachte Annahme für 3er-Watten
+    forcedFourApplies: false,
+    dynamicTeams: true,
   },
   4: {
     players: 4,
@@ -28,6 +33,6 @@ export const VARIANTS = {
   },
 };
 
-export function teamOfSeat(variant, seat) {
-  return variant.teams.findIndex((t) => t.includes(seat));
+export function teamOfSeat(teams, seat) {
+  return teams.findIndex((t) => t.includes(seat));
 }

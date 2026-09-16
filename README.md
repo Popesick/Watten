@@ -146,11 +146,19 @@ Partners im Stich blau markiert - siehe Grafik-Abschnitt oben.
 - Kein Schlagtausch, kein "Schöner", kein "nichts ansagen".
 - Bei "Gehn?" und den erzwungenen Ansagen entscheidet je Team ein
   Sitzplatz stellvertretend (der erste Sitz des Teams).
-- "Es gehen die Vier" nur für 2 Teams (2er-/4er-Watten), nicht für die
-  freie 3er-Variante; in einer Runde mit "es gehen die Vier" ist "Gehn?"
-  nicht zusätzlich möglich.
-- 3er-Watten: Variante mit 7 Karten/Spieler, alle gegeneinander. Bei
-  "Gehn?" werden die beiden Gegner nacheinander gefragt.
+- "Es gehen die Vier" nur für 2 Teams (2er-/4er-Watten), nicht für das
+  3er-Watten.
+- 3er-Watten: jeder Spieler bekommt 5 Karten. Der Spieler links vom Geber
+  sagt allein Schlag **und** Trumpf an und spielt diese Runde allein gegen
+  die anderen beiden, die für diese eine Runde ein Team bilden ("Wer sagt
+  an, spielt allein"). In der nächsten Runde rückt der Geber weiter, also
+  wechselt auch der Alleinspieler und damit das Zweier-Team. Jeder der drei
+  Spieler hat einen eigenen, dauerhaften Punktestand; gewinnt das
+  Zweier-Team eine Runde, bekommen beide Partner den vollen Rundenwert
+  gutgeschrieben, genauso wie der Alleinspieler ihn allein bekäme. Bei
+  "Gehn?" antwortet stellvertretend für das Zweier-Team der Sitz mit der
+  niedrigeren Nummer. Weil der Partner jede Runde wechselt, ist die
+  Partner-Markierung im Stich (siehe oben) hier besonders wichtig.
 - Kein Blindwatten (verdeckte Ansage).
 
 ## Architektur

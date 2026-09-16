@@ -244,11 +244,13 @@ export class Ui {
   }
 
   teamOf(seat, s) {
-    return s.variant.teams.findIndex((t) => t.includes(seat));
+    const teams = s.roundTeams || s.variant.teams;
+    return teams.findIndex((t) => t.includes(seat));
   }
 
   hasPartner(seat, s) {
-    const team = s.variant.teams.find((t) => t.includes(seat));
+    const teams = s.roundTeams || s.variant.teams;
+    const team = teams.find((t) => t.includes(seat));
     return team && team.length === 2;
   }
 
