@@ -2,6 +2,18 @@ import { WattenGame } from './engine.js';
 import { HumanController, AIController } from './players.js';
 import { Ui } from './ui.js';
 import { audioManager } from './audio.js';
+import { renderInstallSection, wireInstallSection, onInstallStateChange } from './install.js';
+
+if ('serviceWorker' in navigator) {
+  // Registrierung nicht erst nach dem "load"-Event, sondern sofort: das
+  // Modul-Script läuft ohnehin erst nach dem HTML-Parsing, ein zusätzliches
+  // Warten auf "load" spart hier nichts und hat sich als unzuverlässig
+  // gezeigt (Event feuert in manchen Umgebungen vor dem Listener).
+  navigator.serviceWorker.register('sw.js').catch(() => {
+    // Kein Beinbruch, wenn der Service Worker nicht registriert werden kann -
+    // das Spiel läuft auch ohne Offline-Unterstützung/Installierbarkeit.
+  });
+}
 
 const app = document.getElementById('app');
 
@@ -98,6 +110,7 @@ function renderSetup() {
           <span id="music-volume-label">${volumePct}%</span>
         </div>
       </div>
+      ${renderInstallSection()}
       <button class="start-btn" id="start-btn">Spiel starten</button>
     </div>
   `;
@@ -138,6 +151,7 @@ function renderSetup() {
     audioManager.setVolume(v);
     app.querySelector('#music-volume-label').textContent = `${e.target.value}%`;
   });
+  wireInstallSection(app, renderSetup);
   app.querySelector('#start-btn').addEventListener('click', startGame);
 }
 
@@ -170,7 +184,10 @@ function resolveCharacters(seatTypes, avatarChoices) {
   return characters;
 }
 
+let gameStarted = false;
+
 function startGame() {
+  gameStarted = true;
   ensureSeatTypesLength();
   audioManager.unlock();
   app.innerHTML = '<div id="game-root"></div>';
@@ -192,5 +209,9 @@ function startGame() {
 
   game.playGame();
 }
+
+onInstallStateChange(() => {
+  if (!gameStarted) renderSetup();
+});
 
 renderSetup();

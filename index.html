@@ -2,9 +2,22 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>Watten</title>
 <link rel="stylesheet" href="css/style.css" />
+
+<!-- PWA: Installierbarkeit (Manifest, Icons, Theme-Farbe) -->
+<link rel="manifest" href="manifest.webmanifest" />
+<meta name="theme-color" content="#0f2410" />
+<link rel="icon" href="favicon.png" />
+
+<!-- iOS Safari respektiert das Manifest nicht vollständig - eigene Tags nötig,
+     damit "Zum Home-Bildschirm" ein Icon bekommt und im Standalone-Modus
+     (ohne Safari-Adressleiste) startet. -->
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Watten" />
+<link rel="apple-touch-icon" href="assets/img/icons/apple-touch-icon.png" />
 </head>
 <body>
   <div id="app"></div>

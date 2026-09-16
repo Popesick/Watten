@@ -1,0 +1,19 @@
+{
+  "name": "Watten",
+  "short_name": "Watten",
+  "description": "Digitales Watten für 2-4 Spieler mit KI-Gegnern",
+  "id": "/Watten/",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0f2410",
+  "theme_color": "#0f2410",
+  "lang": "de",
+  "icons": [
+    { "src": "assets/img/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/img/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/img/icons/icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "assets/img/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

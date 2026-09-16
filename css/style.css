@@ -125,6 +125,33 @@ h1, h2, h3 { margin: 0 0 8px; }
 }
 .start-btn:hover { filter: brightness(1.08); }
 
+.install-box {
+  position: relative;
+  background: rgba(212, 175, 55, 0.08);
+  border: 1px solid var(--gold);
+  border-radius: 10px;
+  padding: 12px 34px 12px 12px;
+}
+.install-btn { width: 100%; }
+.install-hint { font-size: 0.85rem; color: var(--muted); line-height: 1.4; }
+.install-hint b { color: var(--gold); }
+.install-hint-steps ol { margin: 6px 0 0 20px; padding: 0; }
+.install-hint-steps li { margin-bottom: 4px; }
+.install-btn + .install-hint { margin-top: 8px; }
+.install-dismiss {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 4px;
+}
+.install-dismiss:hover { color: var(--gold); }
+
 /* Spieltisch */
 .table-wrap {
   background: rgba(9, 36, 18, 0.82);

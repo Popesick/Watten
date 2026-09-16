@@ -15,6 +15,35 @@ Danach im Browser `http://localhost:8420` öffnen. Alternativ über die
 Claude-Code-Preview: `.claude/launch.json` im Ordner `Dokumente` enthält
 bereits die Konfiguration `watten`.
 
+## Installierbare App (PWA)
+
+Watten lässt sich als App installieren (eigenes Icon, läuft ohne
+Browser-Adressleiste, funktioniert auch offline mit dem zuletzt geladenen
+Stand). Dafür sorgen `manifest.webmanifest`, `sw.js` (Service Worker,
+Strategie "Network-first" - online gibt's immer die aktuelle Version,
+offline springt der letzte Cache-Stand ein) und die App-Icons unter
+`assets/img/icons/`.
+
+- **Chrome/Edge/Android (inkl. neuerer Samsung-Internet-Versionen):**
+  Sobald der Browser die Seite als installierbar erkennt, erscheint im
+  Startmenü ein Button "📲 App installieren", der den nativen
+  Installationsdialog öffnet.
+- **Samsung Internet Browser:** löst "beforeinstallprompt" nicht
+  zuverlässig auf allen Versionen/Einstellungen aus. Deshalb wird
+  zusätzlich immer eine manuelle Anleitung angezeigt (Menü ☰ → "Seite zu"
+  → "Startbildschirm hinzufügen").
+- **iOS Safari:** unterstützt keinen automatischen Installations-Dialog.
+  Im Startmenü erscheint stattdessen eine Schritt-für-Schritt-Anleitung
+  fürs Teilen-Menü ("Zum Home-Bildschirm"). Wird die Seite auf dem
+  iPhone/iPad in einem anderen Browser als Safari geöffnet (z.B. Chrome
+  oder Firefox für iOS), erscheint der Hinweis, die Seite in Safari zu
+  öffnen - nur dort funktioniert die Installation unter iOS.
+- Läuft die Seite bereits als installierte App (Standalone-Modus), wird
+  der ganze Installationsbereich ausgeblendet.
+
+Die Logik dafür steckt in `js/install.js` (Plattform-/Browser-Erkennung,
+Anzeige) und wird im Startmenü (`js/main.js`) eingebunden.
+
 ## Umgesetzte Variante: Offenes Watten
 
 Es ist bewusst zunächst nur **Offenes Watten** implementiert: Schlag und
@@ -174,10 +203,13 @@ Partners im Stich blau markiert - siehe Grafik-Abschnitt oben.
 - `js/engine.js` – Spielablauf: animiertes Austeilen, Ansage, Stiche,
   "Gehn?"-Verhandlung, Wertung.
 - `js/audio.js` – Musik-Playlist und Soundeffekte (`AudioManager`).
+- `js/install.js` – PWA-Installations-Erkennung/-Anleitung (siehe oben).
 - `js/ui.js` / `js/main.js` – Rendering, Avatar-/Musikauswahl, Hand-
   Sortierung/Drag&Drop, Einstiegspunkt.
 - `assets/img/` – Hintergrund- und Charaktergrafiken.
+- `assets/img/icons/` – App-Icons (Manifest, Apple-Touch-Icon).
 - `assets/audio/` – Musikstücke und Soundeffekte.
+- `manifest.webmanifest`, `sw.js` – PWA-Installierbarkeit (siehe oben).
 
 ## Mögliche nächste Schritte
 
